@@ -12,15 +12,20 @@ class LogStash::Filters::Tagger < LogStash::Filters::Base
     config_name "tagger"
 
     # Replace the message with this value.
-    config :match, :validate => :array, :default => []
+    config :match, :validate => :hash, :default => {}
 
     public
     def register
-        # nothing to do
+        # TODO: reconstruct the array into something that will tag
+        # things out faster
+        puts "Tagger filter is setup!"
     end # def register
 
     public
     def filter(event)
-        # TODO: run through the array of tags to do matches
+        # TODO: run through the array of tags to do matches and add
+        # the tag key if a match is found
+        puts "Filtering message: #{event}"
     end # def filter
+
 end # class LogStash::Filters::Foo

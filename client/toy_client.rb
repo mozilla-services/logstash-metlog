@@ -61,30 +61,33 @@ class Transport
         INFO "Serializing to string"
         return json_obj.to_s
     end
+
+    def destroy
+        # Nothing to see here!
+    end
 end
 
-class ZeroMQTransport
+class ZeroMQTransport < Transport
     def initialize(protocol, host, port)
-        @protocol = protocol
-        @host = host
-        @port = port
-        @uri = "#{@protocol}://#{@host}:#{@port}"
-
         @context = ZMQ::Context.new
-
-        # Subscriber tells us when it's ready here
-
         # We send updates via this socket
-        @publisher = context.socket(ZMQ::PUB)
-        @publisher.bind(@uri)
+        @publisher = @context.socket(ZMQ::PUB)
+        @publisher.bind("tcp://127.0.0.1:5565")
+
+        # TODO: we need to do a bit of handshaking instead of just
+        # sleeping.  See the durapub/durasub exampes that use a sync
+        # channel
     end
 
     def send(json_obj)
-        msg = encode(json_obj)
-        @publisher.send_string(msg)
+        message = encode(json_obj)
+        @publisher.send_string(message)
     end
 
-    # TODO: implement destructor to clean up the context and publisher
+    def destroy
+        @publisher.close
+        @context.close
+    end
 end
 
 class UDPTransport < Transport
@@ -121,6 +124,7 @@ class UDPTransport < Transport
             s.close()
         end
     end
+
 end
 
 
@@ -134,9 +138,17 @@ def udp_main
 end
 
 def zeromq_main
+    # Now broadcast exactly 10 updates with pause
     transport = ZeroMQTransport.new('tcp', '127.0.0.1', 5565)
-    log(transport, 100, 10, {'message' => 'This is some text'})
-    INFO "Done!"
+    # Note that the ZMQ client will asynchronously bind into the
+    # subscriber so the first couple messages may be lost until the
+    # sync code it put in
+    10000.times do 
+        log(transport, 100, 10, {'message' => 'This is some text'})
+        INFO "Done!"
+    end
+
+    transport.destroy
 end
 
 zeromq_main()

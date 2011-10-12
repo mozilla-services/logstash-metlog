@@ -1,7 +1,8 @@
 # Publisher for durable subscriber
 # Justin Case <justin@playelite.com>
 
-require 'ffi-rzmq'
+require "json"
+require "ffi-rzmq"
 
 context = ZMQ::Context.new
 
@@ -11,6 +12,7 @@ publisher.bind("tcp://127.0.0.1:5565")
 
 # Now broadcast exactly 10 updates with pause
 10.times do |update_number|
+    # TODO: convert this to a proper message
   message = sprintf("Update %d", update_number)
   publisher.send_string(message)
   sleep(1)
