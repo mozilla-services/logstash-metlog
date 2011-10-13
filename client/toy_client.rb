@@ -155,15 +155,23 @@ def zeromq_main
     # Note that the ZMQ client will asynchronously bind into the
     # subscriber so the first couple messages may be lost until the
     # sync code it put in
-    msg = { timestamp: '2011-10-13T09:43:44.386392',
+    msg1 = { timestamp: '2011-10-13T09:43:44.386392',
             metadata: {'some_data' => 'foo' },
             logger: 'toylogger',
             severity: SEVERITY[:EMERGENCY],
             message: 'some log text',
     }
-    1000.times do 
-        log(transport, msg)
-        INFO "Done!"
+
+    msg2 = { timestamp: '2011-10-13T09:43:44.386392',
+            metadata: {'some_data' => 'bar' },
+            logger: 'toylogger',
+            severity: SEVERITY[:EMERGENCY],
+            message: 'some log text',
+    }
+
+    500.times do 
+        log(transport, msg1)
+        log(transport, msg2)
     end
 
     transport.destroy
