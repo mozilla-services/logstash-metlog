@@ -16,12 +16,17 @@ class POSTMonitor(object):
     This is a simple WSGI app that just shows some debugging
     information about what we're getting
     """
+    def __init__(self):
+        self._counter = 0
+
     @webob.dec.wsgify
     def __call__(self, req):
         data = json.loads(req.POST['data'])
         print '=' * 20
         msgs_received = len(data)
+        self._counter += msgs_received
         print "Received %d JSON messages" % msgs_received
+        print "Total message received: %d" % self._counter
 
 
 PORT = 8080
