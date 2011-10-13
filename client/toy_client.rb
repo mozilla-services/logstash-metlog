@@ -49,9 +49,8 @@ end
 # TODO:
 # Can we add required and default arguments here?
 # Rubydoc strings?  Optional stacktraces and the like would be nice
-def log(transport, major, minor, kv_pairs) 
-    source_object = [major, minor, kv_pairs]
-    transport.send(JSON(source_object).to_s)
+def log(transport, data_hash) 
+    transport.send(JSON(data_hash).to_s)
 end
 
 class Transport
@@ -68,11 +67,11 @@ class Transport
 end
 
 class ZeroMQTransport < Transport
-    def initialize(protocol, host, port)
+    def initialize(bind_string)
         @context = ZMQ::Context.new
         # We send updates via this socket
         @publisher = @context.socket(ZMQ::PUB)
-        @publisher.bind("tcp://127.0.0.1:5565")
+        @publisher.bind(bind_string)
 
         # TODO: we need to do a bit of handshaking instead of just
         # sleeping.  See the durapub/durasub exampes that use a sync
@@ -86,7 +85,6 @@ class ZeroMQTransport < Transport
 
     def destroy
         @publisher.close
-        @context.close
     end
 end
 
@@ -130,21 +128,41 @@ end
 
 def udp_main
     transport = UDPTransport.new('localhost', 2294)
-    log(transport, 100, 10, {'message' => 'This is some text'})
+    log(transport, {'message' => 'This is some text'})
 
     # Send a crazy large message
-    log(transport, 100, 10, {'message' => 'blah blah' * 200000})
+    log(transport, {'message' => 'blah blah' * 200000})
     INFO "Done!"
 end
 
+
+SEVERITY = {
+    EMERGENCY: 0,
+    ALERT: 1,
+    CRITICAL: 2,
+    ERROR: 3,
+    WARNING: 4,
+    NOTICE: 5,
+    INFORMATIONAL: 6,
+    DEBUG: 7,
+}
+
+
 def zeromq_main
     # Now broadcast exactly 10 updates with pause
-    transport = ZeroMQTransport.new('tcp', '127.0.0.1', 5565)
+    transport = ZeroMQTransport.new("tcp://127.0.0.1:5565")
+
     # Note that the ZMQ client will asynchronously bind into the
     # subscriber so the first couple messages may be lost until the
     # sync code it put in
-    10000.times do 
-        log(transport, 100, 10, {'message' => 'This is some text'})
+    msg = { timestamp: '2011-10-13T09:43:44.386392',
+            metadata: {'some_data' => 'foo' },
+            logger: 'toylogger',
+            severity: SEVERITY[:EMERGENCY],
+            message: 'some log text',
+    }
+    1000.times do 
+        log(transport, msg)
         INFO "Done!"
     end
 

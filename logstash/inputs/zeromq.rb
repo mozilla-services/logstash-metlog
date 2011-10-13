@@ -13,15 +13,7 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
 
   config_name "zeromq"
 
-  config :protocol, :validate => :string, :default => "tcp"
-
-  # When mode is `server`, the address to listen on.
-  # When mode is `client`, the address to connect to.
-  config :host, :validate => :string, :default => "0.0.0.0"
-
-  # When mode is `server`, the port to listen on.
-  # When mode is `client`, the port to connect to.
-  config :port, :validate => :number, :required => true
+  config :zeromq_bind, :validate => :string, :default => "tcp://127.0.0.1:5565"
 
   # Mode to operate in. `server` listens for client connections,
   # `client` connects to a server.
@@ -36,12 +28,11 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
 
       @context = ZMQ::Context.new
       @subscriber = @context.socket(ZMQ::SUB)
-      @subscriber.setsockopt(ZMQ::IDENTITY, "MozillaMetrics")
+      @subscriber.setsockopt(ZMQ::IDENTITY, "metlog")
       @subscriber.setsockopt(ZMQ::SUBSCRIBE, "")
 
-      url = "#{@protocol}://#{@host}:#{@port}"
-      puts "Using : #{url}"
-      @subscriber.connect(url)
+      puts "Using : #{@zeromq_bind}"
+      @subscriber.connect(@zeromq_bind)
 
     end
   end # def register
@@ -78,13 +69,13 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
         s = @server_socket
         @logger.debug("Accepted connection from #{s} on #{@host}:#{@port}")
         # Do nothing for now for the input data
-        handle_socket(s, output_queue, "0mq://#{@host}:#{@port}")
+        handle_socket(s, output_queue, "0mq:#{@zeromq_bind}")
       end # loop
     else
       # this is the client block
       raise ArgumentError, "Client input filter isn't supported"
     end
   end # def run
-end # class LogStash::Inputs::Udp
+end # class LogStash::Inputs::Zeromq
 
 

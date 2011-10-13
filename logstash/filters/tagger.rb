@@ -1,4 +1,13 @@
-# Call this file 'foo.rb' (in logstash/filters, as above)
+# This filter decodes JSON blobs and matches on 
+# simple key/value pairs.  
+#
+# Basic usage in your logstash configuration
+#
+#
+#
+#
+
+
 require "logstash/filters/base"
 require "logstash/namespace"
 
@@ -11,21 +20,25 @@ class LogStash::Filters::Tagger < LogStash::Filters::Base
     # }
     config_name "tagger"
 
-    # Replace the message with this value.
-    config :match, :validate => :hash, :default => {}
+    # Specify a pattern to parse with. This will match the JSON blob.
+    # For patterns will match only with exact matches.  These are not
+    # regular expressions.
+    config :pattern, :validate => :hash, :default => {}
 
     public
     def register
-        # TODO: reconstruct the array into something that will tag
-        # things out faster
-        puts "Tagger filter is setup!"
+        # Don't think we need to do anything special here
+        puts "tagger is enabled"
     end # def register
 
     public
     def filter(event)
-        # TODO: run through the array of tags to do matches and add
-        # the tag key if a match is found
-        puts "Filtering message: #{event}"
+        # filter_matched(event)
+
+
+        ts = event[:timestamp]
+
+        puts "Parsed Fields: #{event.fields}"
     end # def filter
 
-end # class LogStash::Filters::Foo
+end # class LogStash::Filters::Tagger
