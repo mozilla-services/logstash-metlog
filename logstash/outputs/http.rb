@@ -1,6 +1,8 @@
 require "logstash/outputs/base"
 require "logstash/namespace"
 require "thread"
+require "net/http"
+require "uri"
 
 
 # Write events over an HTTP connection
@@ -15,17 +17,47 @@ class LogStash::Outputs::Http < LogStash::Outputs::Base
 
     config_name "http"
 
-    # When mode is `client`, the address to connect to.
-    config :host, :validate => :string, :required => true
+    config :match_tag, :validate => :string, :required => true
 
-    # When mode is `client`, the port to connect to.
-    config :port, :validate => :number, :required => true
+    # The URL we're gonna POST to 
+    config :url_string, :validate => :string, :required => true
 
-    class Client
+    public
+    def register
+        @httpclient = HttpClient.new(@url_string)
+        @push_thread = Thread.new(@httpclient) do |client|
+            client.run
+        end
+    end # def register
+
+    public
+    def receive(event)
+        begin
+            # We only want to queue up events that match the tag we're
+            # looking for, otherwise - someone else can handle it
+            if event.tags.include? @match_tag
+                wire_event = event.to_hash
+                @httpclient.enqueue(wire_event)
+            end
+        rescue => e
+            @logger.warn(["http output exception", @host, @port, $!])
+            @logger.debug(["backtrace", e.backtrace])
+            @httpclient = nil
+        end
+    end # def receive
+
+
+    ############
+    ############
+    ############
+    ############
+    #
+    #
+    #
+    class HttpClient
         public
-        def initialize(socket, logger)
-            @socket = socket
-            @logger = logger
+        def initialize(url_string)
+            @uri = URI.parse(url_string)
             @queue  = Queue.new
         end
 
@@ -33,10 +65,19 @@ class LogStash::Outputs::Http < LogStash::Outputs::Base
         def run
             loop do
                 begin
-                    # TODO: rewrite this to bach up messages from the
-                    # queue and reconstitute a 'large' JSON message to
-                    # POST up
-                    @socket.write(@queue.pop)
+                    # batch up messages from the queue and
+                    # reconstitute a 'large' JSON message to POST up
+                    msgs = []
+                    while @queue.length > 0 and msgs.length < 100
+                        msgs << @queue.pop
+                    end
+
+                    if msgs.length > 0
+                        response = Net::HTTP.post_form(@uri, {"data" => JSON(msgs).to_s})
+                    else
+                        # TODO: is there a better way to do this?
+                        sleep 1
+                    end
                 rescue => e
                     @logger.warn(["http output exception", @socket, $!])
                     @logger.debug(["backtrace", e.backtrace])
@@ -46,33 +87,10 @@ class LogStash::Outputs::Http < LogStash::Outputs::Base
         end # def run
 
         public
-        def write(msg)
+        def enqueue(msg)
             @queue.push(msg)
-        end # def write
+        end # def enqueue 
     end # class Client
 
-    public
-    def register
-        @client_socket = nil
-    end # def register
 
-    private
-    def connect
-        @client_socket = udpSocket.new(@host, @port)
-    end # def connect
-
-    public
-    def receive(event)
-        wire_event = event.to_hash.to_json + "\n"
-
-        begin
-            connect unless @client_socket
-            @client_socket.write(event.to_hash.to_json)
-            @client_socket.write("\n")
-        rescue => e
-            @logger.warn(["udp output exception", @host, @port, $!])
-            @logger.debug(["backtrace", e.backtrace])
-            @client_socket = nil
-        end
-    end # def receive
 end # class LogStash::Outputs::Udp

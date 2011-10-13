@@ -169,6 +169,7 @@ def zeromq_main
             message: 'some log text',
     }
 
+    sleep 2
     500.times do 
         log(transport, msg1)
         log(transport, msg2)
