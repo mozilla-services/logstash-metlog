@@ -3,13 +3,32 @@
 '''
 This is just a dummy HTTP server to accept POST messages
 '''
-import sys
 from wsgiref.simple_server import make_server
-import webob.dec
-import pprint
+import argparse
 import json
+import pprint
+import sys
+import webob.dec
 
 print "Using: [%s]" % sys.version
+
+PORTS = {'test1': 8080,
+         'test2': 8090,}
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Download tool to fetch files for MARVEN")
+
+    parser.add_argument("--test1",
+            action='store_true',
+            help="Run as testserver 1")
+
+    parser.add_argument("--test2",
+            action='store_true',
+            help="Run as testserver 2")
+
+
+    return parser.parse_args()
+
 
 class POSTMonitor(object):
     """
@@ -27,13 +46,20 @@ class POSTMonitor(object):
         self._counter += msgs_received
         print "Received %d JSON messages" % msgs_received
         print "Total message received: %d" % self._counter
+        pprint.pprint(data)
 
 
-PORT = 8080
-httpd = make_server('localhost', PORT, POSTMonitor())
-print "Serving HTTP on port %s..." % PORT
+def main():
+    args = parse_args()
+    for k in PORTS.keys():
+        if getattr(args, k):
+            port = PORTS[k]
 
-# Respond to requests until process is killed
-httpd.serve_forever()
+    httpd = make_server('localhost', port, POSTMonitor())
+    print "Serving HTTP on port %s..." % port
 
+    # Respond to requests until process is killed
+    httpd.serve_forever()
 
+if __name__ == '__main__':
+    main()

@@ -157,14 +157,14 @@ def zeromq_main
     # sync code it put in
     msg1 = { timestamp: '2011-10-13T09:43:44.386392',
             metadata: {'some_data' => 'foo' },
-            logger: 'toylogger',
+            logger: 'toy1',
             severity: SEVERITY[:EMERGENCY],
             message: 'some log text',
     }
 
     msg2 = { timestamp: '2011-10-13T09:43:44.386392',
             metadata: {'some_data' => 'bar' },
-            logger: 'toylogger',
+            logger: 'toy2',
             severity: SEVERITY[:EMERGENCY],
             message: 'some log text',
     }
