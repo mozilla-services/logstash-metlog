@@ -12,7 +12,7 @@ import webob.dec
 
 print "Using: [%s]" % sys.version
 
-PORTS = {'test1': 8080,
+PORTS = {'test1': 9080,
          'test2': 8090,}
 
 def parse_args():
@@ -40,7 +40,8 @@ class POSTMonitor(object):
 
     @webob.dec.wsgify
     def __call__(self, req):
-        data = json.loads(req.POST['data'])
+        # TODO: change this to read the raw POST data
+        data = json.loads(req.body)
         print '=' * 20
         msgs_received = len(data)
         self._counter += msgs_received
