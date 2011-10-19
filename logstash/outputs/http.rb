@@ -73,9 +73,20 @@ class LogStash::Outputs::Http < LogStash::Outputs::Base
                     end
 
                     if msgs.length > 0
-                        response = Net::HTTP.post_form(@uri, {"data" => JSON(msgs).to_s})
+                        json_payload = JSON(msgs).to_s
+                        #response = Net::HTTP.post_form(@uri, json_payload)
+
+                        req = Net::HTTP::Post.new(@uri.path, initheader = {'Content-Type' =>'application/json'})
+                        req.body = json_payload
+                        response = Net::HTTP.new(@uri.host, @uri.port).start {|http| 
+                            http.request(req)
+                        }
+
+                        # TODO: what do we do if we get a failure in
+                        # log forwarding?
+                        puts "Got Bagheera status: [#{response.code}]"
+
                     else
-                        # TODO: is there a better way to do this?
                         sleep 1
                     end
                 rescue => e
