@@ -13,7 +13,7 @@ import webob.dec
 print "Using: [%s]" % sys.version
 
 PORTS = {'test1': 9080,
-         'test2': 8090,}
+         'test2': 8080,}
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Download tool to fetch files for MARVEN")
