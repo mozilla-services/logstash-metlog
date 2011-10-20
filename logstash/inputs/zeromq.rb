@@ -28,12 +28,8 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
 
       @context = ZMQ::Context.new
       @subscriber = @context.socket(ZMQ::SUB)
-      @subscriber.setsockopt(ZMQ::IDENTITY, "metlog")
       @subscriber.setsockopt(ZMQ::SUBSCRIBE, "")
-
-      puts "Using : #{@zeromq_bind}"
       @subscriber.connect(@zeromq_bind)
-
     end
   end # def register
 
