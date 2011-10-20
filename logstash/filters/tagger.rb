@@ -42,6 +42,10 @@ class LogStash::Filters::Tagger < LogStash::Filters::Base
         @pattern.each_pair{ |keypath, match_pattern|
             obj = event.fields
             keypath.split('/').each{ |segment|
+                if (obj == nil)
+                    # Oops - we ran off the end of the keypath
+                    return nil
+                end
                 obj = obj[segment]
             }
 

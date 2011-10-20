@@ -72,10 +72,6 @@ class ZeroMQTransport < Transport
         # We send updates via this socket
         @publisher = @context.socket(ZMQ::PUB)
         @publisher.bind(bind_string)
-
-        # TODO: we need to do a bit of handshaking instead of just
-        # sleeping.  See the durapub/durasub exampes that use a sync
-        # channel
     end
 
     def send(json_obj)
