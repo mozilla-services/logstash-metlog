@@ -3,7 +3,7 @@ require "logstash/namespace"
 require "thread"
 require "net/http"
 require "uri"
-
+require "ruby-debug"
 
 # Write events over an HTTP connection
 # Basically, this just queues up messages and then forwards off
@@ -24,7 +24,8 @@ class LogStash::Outputs::Http < LogStash::Outputs::Base
 
     public
     def register
-        @httpclient = HttpClient.new(@url_string)
+        puts "[#{self}] We have a logger in http output: [#{@logger}]"
+        @httpclient = HttpClient.new(@url_string, @logger)
         @push_thread = Thread.new(@httpclient) do |client|
             client.run
         end
@@ -56,9 +57,10 @@ class LogStash::Outputs::Http < LogStash::Outputs::Base
     #
     class HttpClient
         public
-        def initialize(url_string)
+        def initialize(url_string, logger)
             @uri = URI.parse(url_string)
             @queue  = Queue.new
+            @logger = logger
         end
 
         public
