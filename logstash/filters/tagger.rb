@@ -45,7 +45,10 @@ class LogStash::Filters::Tagger < LogStash::Filters::Base
                 obj = obj[segment]
             }
 
-            if obj.to_s != match_pattern
+            if obj.to_s == '*'
+                matched = true
+                break
+            elif obj.to_s != match_pattern
                 matched = false
                 break
             end
