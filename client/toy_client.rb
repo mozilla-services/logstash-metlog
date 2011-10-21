@@ -67,10 +67,11 @@ class Transport
 end
 
 class ZeroMQTransport < Transport
-    def initialize(bind_string)
+    def initialize(bind_string, queue_length=1000)
         @context = ZMQ::Context.new
         # We send updates via this socket
         @publisher = @context.socket(ZMQ::PUB)
+        @publisher.setsockopt(ZMQ::HWM, queue_length)
         @publisher.bind(bind_string)
     end
 
@@ -146,7 +147,7 @@ SEVERITY = {
 
 def zeromq_main
     # Now broadcast exactly 10 updates with pause
-    transport = ZeroMQTransport.new("tcp://127.0.0.1:5565")
+    transport = ZeroMQTransport.new("tcp://127.0.0.1:5565", 8)
 
     # Note that the ZMQ client will asynchronously bind into the
     # subscriber so the first couple messages may be lost until the

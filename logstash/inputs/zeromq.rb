@@ -19,15 +19,24 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
   # `client` connects to a server.
   config :mode, :validate => ["server", "client"], :default => "server"
 
+  config :queue_length, :validate => :number, :default => 1000
+
+  # We can only have 1 context per process.
+  # TODO: What does JRuby do w.r.t class loaders and threads?
+  @@context = ZMQ::Context.new
+
   public
   def register
     if server?
       @logger.info("Starting ZeroMQ input listener on #{@host}:#{@port}")
-      # TODO: where to we put destructor code for the context and the
-      # subscriber?
 
-      @context = ZMQ::Context.new
-      @subscriber = @context.socket(ZMQ::SUB)
+      @subscriber = @@context.socket(ZMQ::SUB)
+
+      # we need to set a hard cap to messages or else we run out of
+      # memory
+      @subscriber.setsockopt(ZMQ::HWM, @queue_length)
+
+      # Subscribe to all messages
       @subscriber.setsockopt(ZMQ::SUBSCRIBE, "")
       @subscriber.connect(@zeromq_bind)
     end
