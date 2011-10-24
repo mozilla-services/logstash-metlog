@@ -1,6 +1,4 @@
 require "rubygems"
-require File.join(File.dirname(__FILE__), "..", "minitest")
-
 require "logstash/loadlibs"
 require "logstash"
 require "logstash/filters"
@@ -8,6 +6,7 @@ require "logstash/filters/tagger"
 require "logstash/event"
 require "json"
 require "ruby-debug"
+require "logstash_test_runner"
 
 describe LogStash::Filters::Tagger do
   before do
@@ -28,7 +27,8 @@ describe LogStash::Filters::Tagger do
         @filter.register
   end # def config
 
-  test "logger based routing" do
+  
+  test "simple_routing" do
       # weird - config {} doesn't seem to work
       config ({})
 
