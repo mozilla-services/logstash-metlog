@@ -26,11 +26,15 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
   @@context = ZMQ::Context.new
 
   public
+  def initialize(params)
+    super
+    @subscriber = @@context.socket(ZMQ::SUB)
+  end # def initialize
+
+  public
   def register
     if server?
       @logger.info("Starting ZeroMQ input listener on #{@host}:#{@port}")
-
-      @subscriber = @@context.socket(ZMQ::SUB)
 
       # we need to set a hard cap to messages or else we run out of
       # memory
@@ -39,26 +43,11 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
       # Subscribe to all messages
       @subscriber.setsockopt(ZMQ::SUBSCRIBE, "")
       @subscriber.connect(@zeromq_bind)
+
+      @source = "0mq:#{@zeromq_bind}"
     end
   end # def register
 
-  private
-  def handle_socket(socket, output_queue, event_source)
-    begin
-      loop do
-        buf = @subscriber.recv_string
-        e = self.to_event(buf, event_source)
-        if e
-          output_queue << e
-        end
-      end # loop do
-    rescue => e
-      @logger.debug(["Closing connection with #{socket}", $!])
-      @logger.debug(["Backtrace", e.backtrace])
-    rescue Timeout::Error
-      @logger.debug("Closing connection with #{socket} after read timeout")
-    end # begin
-  end
 
   private
   def server?
@@ -66,15 +55,32 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
   end # def server?
 
   public
+  def dequeue_message(output_queue)
+      # Dequeue a single message.  Makes for easier testing
+      @logger.debug("Accepted connection from #{@subscriber} on #{@host}:#{@port}")
+
+      begin
+          buf = @subscriber.recv_string
+          e = self.to_event(buf, @source)
+          if e
+              output_queue << e
+          end
+      rescue => e
+          @logger.debug(["Closing connection with #{@subscriber}", $!])
+          @logger.debug(["Backtrace", e.backtrace])
+      rescue Timeout::Error
+          @logger.debug("Closing connection with #{@subscriber} after read timeout")
+      end # begin
+
+  end
+
+  public
   def run(output_queue)
     if server?
       loop do
         # We don't need a new thread for each connection, just read
         # the messages as they come in
-        s = @server_socket
-        @logger.debug("Accepted connection from #{s} on #{@host}:#{@port}")
-        # Do nothing for now for the input data
-        handle_socket(s, output_queue, "0mq:#{@zeromq_bind}")
+        dequeue_message(output_queue)
       end # loop
     else
       # this is the client block
