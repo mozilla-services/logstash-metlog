@@ -70,6 +70,7 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
       return nil
     end # begin
     event["payload"] = payload
+    return event
   end # def to_event
 
   public
