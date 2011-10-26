@@ -50,6 +50,9 @@ describe LogStash::Filters::Tagger do
       # Patch the 0mq socket in the input plugin and replace the
       # :recv_string method with a stub that sends our fixture JSON blob
       @input.instance_eval("@subscriber").stubs(:recv_string).returns(@json_blob)
+                                                             .then.returns('not visible') \
+                                                             .then.returns('nor this')
+      @input.instance_eval("@subscriber").stubs(:more_parts?).returns(false)
 
       output_queue = []
       @input.dequeue_message(output_queue)
@@ -61,6 +64,39 @@ describe LogStash::Filters::Tagger do
       assert event.fields["logger"] == "stacktrace"
       assert event.fields["severity"] == 0
       assert event.fields["message"] == "some log text"
+      assert event.fields["payload"] == ""
+
+  end # testing a single match
+
+  test "test multipart decode" do
+      # This test just makes sure that the input plugin will decode
+      # JSON text blobs into event objects
+      
+      # weird - config {} doesn't seem to work
+      config_input({})
+
+      # Patch the 0mq socket in the input plugin and replace the
+      # :recv_string method with a stub that sends our fixture JSON blob
+      PAYLOAD = "blah blah"
+      @input.instance_eval("@subscriber").stubs(:recv_string).returns(@json_blob) \
+                                                             .then.returns(PAYLOAD) \
+                                                             .then.returns(nil)
+
+      @input.instance_eval("@subscriber").stubs(:more_parts?).returns(true) \
+                                                             .then.returns(false)
+      output_queue = []
+      @input.dequeue_message(output_queue)
+      event = output_queue.shift
+
+      # Check that we've got a payload
+      assert event.fields['timestamp'] == "2011-10-13T09:43:44.386392"
+      assert event.fields["metadata"] == {"some_data"=>"foo"}
+      assert event.fields["type"] == "error"
+      assert event.fields["logger"] == "stacktrace"
+      assert event.fields["severity"] == 0
+      assert event.fields["message"] == "some log text"
+      assert event.fields["payload"] == PAYLOAD
+      
   end # testing a single match
 
 end # TestTagger
