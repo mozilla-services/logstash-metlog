@@ -68,15 +68,9 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
                    :source => source, :exception => e,
                    :backtrace => e.backtrace)
       return nil
-    end
-
+    end # begin
     event["payload"] = payload
-    if @message_format
-      event.message = event.sprintf(@message_format)
-    else
-      event.message = raw
-    end
-  end
+  end # def to_event
 
   public
   def dequeue_message(output_queue)
@@ -89,6 +83,7 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
         payload = @subscriber.recv_string
       else
         payload = ""
+      end
       e = self.to_event(env, payload, @source)
       if e
         output_queue << e
