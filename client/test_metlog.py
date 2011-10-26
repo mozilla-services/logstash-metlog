@@ -3,7 +3,7 @@ from metlog.senders import ZmqPubSender
 from metlog.client import MetlogClient
 import time
 
-sender = ZmqPubSender('ipc://metlog-feed')
+sender = ZmqPubSender('tcp://127.0.0.1:5565')
 client = MetlogClient(sender, 'testy')
 
 while True:
