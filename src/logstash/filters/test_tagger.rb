@@ -36,7 +36,9 @@ describe LogStash::Filters::Tagger do
         cfg["type"] = ["metlog"]
 
         @input = LogStash::Inputs::Zeromq.new(cfg)
-        @input.register
+        # Don't register the input plugin as it just starts the server
+        # socket
+        #@input.register
   end # def config
 
   def config_filter(cfg)
