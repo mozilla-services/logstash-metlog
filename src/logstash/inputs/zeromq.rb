@@ -48,30 +48,57 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
     end
   end # def register
 
-
   private
   def server?
     @mode == "server"
   end # def server?
 
+  protected
+  def to_event(env, payload, source)
+    event = LogStash::Event.new
+    event.type = @type
+    event.tags = @tags.clone rescue []
+    event.source = source
+
+    begin
+      fields = JSON.parse(env)
+      fields.each { |k, v| event[k] = v }
+    rescue => e
+      @logger.warn("Trouble parsing json input", :input => env,
+                   :source => source, :exception => e,
+                   :backtrace => e.backtrace)
+      return nil
+    end
+
+    event["payload"] = payload
+    if @message_format
+      event.message = event.sprintf(@message_format)
+    else
+      event.message = raw
+    end
+  end
+
   public
   def dequeue_message(output_queue)
-      # Dequeue a single message.  Makes for easier testing
-      @logger.debug("Accepted connection from #{@subscriber} on #{@host}:#{@port}")
+    # Dequeue a single message.  Makes for easier testing
+    @logger.debug("Accepted connection from #{@subscriber} on #{@host}:#{@port}")
 
-      begin
-          buf = @subscriber.recv_string
-          e = self.to_event(buf, @source)
-          if e
-              output_queue << e
-          end
-      rescue => e
-          @logger.debug(["Closing connection with #{@subscriber}", $!])
-          @logger.debug(["Backtrace", e.backtrace])
-      rescue Timeout::Error
-          @logger.debug("Closing connection with #{@subscriber} after read timeout")
-      end # begin
-
+    begin
+      env = @subscriber.recv_string
+      if @subscriber.more_parts?
+        payload = @subscriber.recv_string
+      else
+        payload = ""
+      e = self.to_event(env, payload, @source)
+      if e
+        output_queue << e
+      end
+    rescue => e
+      @logger.debug(["Closing connection with #{@subscriber}", $!])
+      @logger.debug(["Backtrace", e.backtrace])
+    rescue Timeout::Error
+      @logger.debug("Closing connection with #{@subscriber} after read timeout")
+    end # begin
   end
 
   public
