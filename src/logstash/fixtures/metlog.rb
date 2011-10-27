@@ -86,5 +86,21 @@ module LogStash::Fixtures
             return evt
         end
 
+        # This is a malformed event in the context of metlog-statsd
+        public
+        def self.malformed_statsd_event
+            evt = LogStash::Event.new
+            evt.fields['logger'] = 'malformed'
+            evt.fields['fields'] = {}
+
+            # Skip the app name - this should cause the statsd
+            # client to not push the event
+            # evt.fields['fields']['name'] = 'my_sampletiming'
+
+            evt.fields['payload'] = 7
+            evt.fields['fields']['rate'] = 0.15
+            return evt
+        end
+
     end
 end

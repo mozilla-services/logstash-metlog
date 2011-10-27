@@ -35,10 +35,15 @@ class LogStash::Outputs::MetlogStatsd < LogStash::Outputs::Base
       end
     end
 
-    ns = event.fields['fields']['logger']
-    key = event.fields['fields']['fields']['name']
-    value = event.fields['payload'].to_f
-    rate = event.fields['fields']['rate'].to_f
+    begin
+        ns = event.fields['fields']['logger']
+        key = event.fields['fields']['fields']['name']
+        value = event.fields['payload'].to_f
+        rate = event.fields['fields']['rate'].to_f
+    rescue => e
+        @logger.warn(["Event can't be marshalled for statsd", @host, @port, $!])
+        @logger.debug(["backtrace", e.backtrace])
+    end
 
     if 'counter' == event.fields['type']
         @client.count(ns, key, value, rate)

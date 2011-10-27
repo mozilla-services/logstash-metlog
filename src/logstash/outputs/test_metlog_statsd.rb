@@ -65,9 +65,9 @@ describe LogStash::Outputs::MetlogStatsd do
 
       @plugin.instance_eval("@client").stubs(:count).never()
       @plugin.instance_eval("@client").stubs(:timing).with(event.fields['logger'],
-                                                          event.fields['fields']['name'],
-                                                          event.fields['payload'].to_f,
-                                                          event.fields['fields']['rate'].to_f)
+                                                           event.fields['fields']['name'],
+                                                           event.fields['payload'].to_f,
+                                                           event.fields['fields']['rate'].to_f)
       @plugin.receive(event)
   end
 
@@ -80,11 +80,27 @@ describe LogStash::Outputs::MetlogStatsd do
 
       @plugin.instance_eval("@client").stubs(:count).never()
       @plugin.instance_eval("@client").stubs(:timing).with(event.fields['logger'],
-                                                          event.fields['fields']['name'],
-                                                          event.fields['payload'].to_f,
-                                                          event.fields['fields']['rate'].to_f)
+                                                           event.fields['fields']['name'],
+                                                           event.fields['payload'].to_f,
+                                                           event.fields['fields']['rate'].to_f)
       @plugin.receive(event)
   end
+
+
+  test "malformed events" do
+      # This just makes sure that the output plugins don't bomb out on
+      # malformed events for statsd
+      init_client
+
+      event = LogStash::Fixtures::MetlogFixtures.malformed_statsd_event
+
+      # Patch the count and timing methods
+
+      @plugin.instance_eval("@client").stubs(:count).never()
+      @plugin.instance_eval("@client").stubs(:timing).never()
+      @plugin.receive(event)
+  end
+
 
 end # TestTagger
 

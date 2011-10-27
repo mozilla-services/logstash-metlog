@@ -43,7 +43,6 @@ class LogStash::Outputs::Http < LogStash::Outputs::Base
         rescue => e
             @logger.warn(["http output exception", @host, @port, $!])
             @logger.debug(["backtrace", e.backtrace])
-            @httpclient = nil
         end
     end # def receive
 
@@ -76,7 +75,6 @@ class LogStash::Outputs::Http < LogStash::Outputs::Base
 
                     if msgs.length > 0
                         json_payload = JSON(msgs).to_s
-                        #response = Net::HTTP.post_form(@uri, json_payload)
 
                         req = Net::HTTP::Post.new(@uri.path, initheader = {'Content-Type' =>'application/json'})
                         req.body = json_payload
