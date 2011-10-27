@@ -27,38 +27,63 @@ describe LogStash::Outputs::MetlogStatsd do
   end
 
   test "simple increment" do
-      # This test just makes sure that the input plugin will decode
-      # JSON text blobs into event objects
-
       init_client
 
       event = LogStash::Fixtures::MetlogFixtures.simple_incr_counter
 
       # Patch the count and timing methods
 
-      @plugin.instance_eval("@client").stubs(:count).with('incr-space', 'myapp', 2, 1)
-      @plugin.client.stubs(:timing).never()
+      @plugin.instance_eval("@client").stubs(:count).with(event.fields['logger'],
+                                                          event.fields['fields']['name'],
+                                                          event.fields['payload'].to_f,
+                                                          event.fields['fields']['rate'].to_f)
+      @plugin.instance_eval("@client").stubs(:timing).never()
       @plugin.receive(event)
   end
 
-  test "namespaced increment" do
-      raise NotImplementedError
-  end 
+  test "sampled increment @ 15%" do
+      init_client
 
-  test "sampled increment @ 10%" do
-      raise NotImplementedError
-  end
+      event = LogStash::Fixtures::MetlogFixtures.sampled_incr_counter
 
-  test "sampled decrement @ 15%" do
-      raise NotImplementedError
+      # Patch the count and timing methods
+
+      @plugin.instance_eval("@client").stubs(:count).with(event.fields['logger'],
+                                                          event.fields['fields']['name'],
+                                                          event.fields['payload'].to_f,
+                                                          event.fields['fields']['rate'].to_f)
+      @plugin.instance_eval("@client").stubs(:timing).never()
+      @plugin.receive(event)
   end
 
   test "timing an event" do
-      raise NotImplementedError
+      init_client
+
+      event = LogStash::Fixtures::MetlogFixtures.timing_event
+
+      # Patch the count and timing methods
+
+      @plugin.instance_eval("@client").stubs(:count).never()
+      @plugin.instance_eval("@client").stubs(:timing).with(event.fields['logger'],
+                                                          event.fields['fields']['name'],
+                                                          event.fields['payload'].to_f,
+                                                          event.fields['fields']['rate'].to_f)
+      @plugin.receive(event)
   end
 
-  test "timing an event @ 18%" do
-      raise NotImplementedError
+  test "timing an event @ 15%" do
+      init_client
+
+      event = LogStash::Fixtures::MetlogFixtures.sampled_timing_event
+
+      # Patch the count and timing methods
+
+      @plugin.instance_eval("@client").stubs(:count).never()
+      @plugin.instance_eval("@client").stubs(:timing).with(event.fields['logger'],
+                                                          event.fields['fields']['name'],
+                                                          event.fields['payload'].to_f,
+                                                          event.fields['fields']['rate'].to_f)
+      @plugin.receive(event)
   end
 
 end # TestTagger

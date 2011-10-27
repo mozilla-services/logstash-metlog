@@ -27,12 +27,6 @@ class LogStash::Outputs::MetlogStatsd < LogStash::Outputs::Base
     @client = LogStash::Outputs::SimpleStatsd.new(@host, @port)
   end # def register
 
-  public 
-  def client
-      @client
-  end
-
-
   public
   def receive(event)
     if !@tags.empty?

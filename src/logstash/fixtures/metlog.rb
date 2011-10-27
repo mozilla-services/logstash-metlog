@@ -76,7 +76,7 @@ module LogStash::Fixtures
 
         # This is a sampled timed event
         public
-        def self.timing_event
+        def self.sampled_timing_event
             evt = LogStash::Event.new
             evt.fields['logger'] = 'timing-space'
             evt.fields['fields'] = {}
