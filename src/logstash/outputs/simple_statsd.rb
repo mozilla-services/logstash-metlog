@@ -7,6 +7,12 @@ require 'socket'
 #
 #   This statsd client has mainly been modified to act as a central
 #   statsd client for multiple applications.
+#
+#   This client implements only the basic statsd functions calls 
+#   with no special shortcuts.
+#  
+#   The only instance methods you should ever need are #count and
+#   #timing.  See the test case for usage.
 
 class LogStash::Outputs::SimpleStatsd
     #characters that will be replaced with _ in stat names
