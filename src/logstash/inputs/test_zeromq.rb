@@ -17,7 +17,7 @@ require "logstash/filters/tagger"
 
 require "json"
 
-describe LogStash::Filters::Tagger do
+describe LogStash::Inputs::Zeromq do
   before do
       # Pull a JSON blob from the fixtures
       # TODO: need to convert this into 2 messages for the envelope and
