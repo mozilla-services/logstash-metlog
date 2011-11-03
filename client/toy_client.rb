@@ -72,7 +72,7 @@ class ZeroMQTransport < Transport
         # We send updates via this socket
         @publisher = @context.socket(ZMQ::PUB)
         @publisher.setsockopt(ZMQ::HWM, queue_length)
-        @publisher.bind(bind_string)
+        @publisher.connect(bind_string)
     end
 
     def send(json_obj)
@@ -167,7 +167,7 @@ def zeromq_main
     }
 
     sleep 2
-    500.times do 
+    50.times do 
         log(transport, msg1)
         log(transport, msg2)
     end
