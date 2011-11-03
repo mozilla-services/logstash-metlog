@@ -42,7 +42,7 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
 
       # Subscribe to all messages
       @subscriber.setsockopt(ZMQ::SUBSCRIBE, "")
-      @subscriber.connect(@zeromq_bind)
+      @subscriber.bind(@zeromq_bind)
 
       @source = "0mq:#{@zeromq_bind}"
     end
