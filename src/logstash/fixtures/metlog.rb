@@ -16,6 +16,7 @@ module LogStash::Fixtures
             'logger' => 'stacktrace',
             'severity' => 0,
             'message' => 'some log text',
+            'payload' => 'blah blah',
         }
 
 
