@@ -27,7 +27,7 @@ describe LogStash::Inputs::Zeromq do
 
   def config_input(cfg)
       # this method is *not* executed automatically
-      # 
+      #
       # A bit confused here. When you set the type, the configuration
       # takes in a string, but the testcase expects a list?
 
@@ -43,7 +43,7 @@ describe LogStash::Inputs::Zeromq do
   test "test message decode" do
       # This test just makes sure that the input plugin will decode
       # JSON text blobs into event objects
-      
+
       # weird - config {} doesn't seem to work
       config_input({})
 
@@ -71,7 +71,7 @@ describe LogStash::Inputs::Zeromq do
   test "test multipart decode" do
       # This test just makes sure that the input plugin will decode
       # JSON text blobs into event objects
-      
+
       # weird - config {} doesn't seem to work
       config_input({})
 
@@ -96,7 +96,7 @@ describe LogStash::Inputs::Zeromq do
       assert event.fields["severity"] == 0
       assert event.fields["message"] == "some log text"
       assert event.fields["payload"] == PAYLOAD
-      
+
   end # testing a single match
 
 end # TestTagger
