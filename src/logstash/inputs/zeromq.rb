@@ -25,6 +25,8 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
   # TODO: What does JRuby do w.r.t class loaders and threads?
   @@context = ZMQ::Context.new
 
+  @format = "json"
+
   public
   def initialize(params)
     super
@@ -53,39 +55,14 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
     @mode == "server"
   end # def server?
 
-  protected
-  def to_event(env, payload, source)
-    event = LogStash::Event.new
-    event.type = @type
-    event.tags = @tags.clone rescue []
-    event.source = source
-
-    begin
-      fields = JSON.parse(env)
-      fields.each { |k, v| event[k] = v }
-    rescue => e
-      @logger.warn("Trouble parsing json input", :input => env,
-                   :source => source, :exception => e,
-                   :backtrace => e.backtrace)
-      return nil
-    end # begin
-    event["payload"] = payload
-    return event
-  end # def to_event
-
   public
   def dequeue_message(output_queue)
     # Dequeue a single message.  Makes for easier testing
     @logger.debug("Accepted connection from #{@subscriber} on #{@host}:#{@port}")
 
     begin
-      env = @subscriber.recv_string
-      if @subscriber.more_parts?
-        payload = @subscriber.recv_string
-      else
-        payload = ""
-      end
-      e = self.to_event(env, payload, @source)
+      msg = @subscriber.recv_string
+      e = self.to_event(msg, @source)
       if e
         output_queue << e
       end
