@@ -46,7 +46,8 @@ class LogStash::Inputs::Zeromq < LogStash::Inputs::Base
       @subscriber.setsockopt(ZMQ::SUBSCRIBE, "")
       @subscriber.bind(@zeromq_bind)
 
-      @source = "0mq:#{@zeromq_bind}"
+      # This has to be a legal URL
+      @source = "#{@zeromq_bind}"
     end
   end # def register
 
