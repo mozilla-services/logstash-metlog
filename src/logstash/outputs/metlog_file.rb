@@ -49,8 +49,6 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
     # will block as events come in.
     # Only flush the bufffers when we have idle time
     class FileClient
-        #include com.mozilla.services.ISignalHandler
-
         public
         def initialize(path, logger)
             @path = path
@@ -59,31 +57,31 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
 
             @logfile = open(path)
 
-            # Hook SIGHUP (1) to this client
-            #com.mozilla.services.POSIX.signal(1, this)
+            # Hook SIGHUP (1) to this instance
+            LogStash::Util::Signals::LibC.signal(1) do |signal|
+                if signal == 1
+                    @logfile.flush
+                    @logfile.close
+
+                    @logfile = open(path)
+                    @logfile.flush
+                end
+            end
         end 
-
-        public
-        def callback(signal)
-
-        end
 
         public
         def run
             loop do
                 begin
-                    # batch up messages from the queue and
-                    # reconstitute a 'large' JSON message to POST up
-                    msgs = []
-                    while @queue.length > 0
-                        # append to disk as they come in
-                        event = @queue.pop
-                        @logfile.puts(event.to_json)
-                    end
+                    # append to disk as they come in
+                    event = @queue.pop
+                    @logfile.puts(event.to_json)
+
+                    # This is probably a bad idea to flush all the
+                    # time.  Not quite sure what JRuby does, if it
+                    # does anything with I/O buffers
                     @logfile.flush
-                    sleep 1
                 rescue => e
-                    @logger.warn(["http output exception", @socket, $!])
                     @logger.debug(["backtrace", e.backtrace])
                     break
                 end
