@@ -1,5 +1,6 @@
 require "logstash/namespace"
 require "logstash/outputs/base"
+require "logstash/util/signals"
 
 # File output.
 #
@@ -8,6 +9,7 @@ require "logstash/outputs/base"
 class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
 
   config_name "metlog_file"
+  plugin_status "beta"
 
   # Only handle events with all of these tags
   # Optional.

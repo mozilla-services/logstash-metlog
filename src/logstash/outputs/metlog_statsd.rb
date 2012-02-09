@@ -10,6 +10,7 @@ require 'logstash/outputs/simple_statsd'
 
 class LogStash::Outputs::MetlogStatsd < LogStash::Outputs::Base
   config_name "metlog_statsd"
+  plugin_status "beta"
 
   # The address of the Statsd server.
   config :host, :validate => :string, :default => "localhost"

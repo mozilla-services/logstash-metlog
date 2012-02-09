@@ -19,6 +19,8 @@ class LogStash::Filters::Tagger < LogStash::Filters::Base
     #   foo { ... }
     # }
     config_name "tagger"
+    plugin_status "beta"
+
 
     # Specify a pattern to parse with. This will match the JSON blob.
     # For patterns will match only with exact matches.  These are not
@@ -28,7 +30,6 @@ class LogStash::Filters::Tagger < LogStash::Filters::Base
     public
     def register
         # Don't think we need to do anything special here
-        puts "tagger is enabled"
     end # def register
 
     public
