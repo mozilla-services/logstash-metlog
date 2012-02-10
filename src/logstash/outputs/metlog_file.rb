@@ -19,11 +19,17 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
   # like "/var/log/logstash/%{@source_host}/%{application}"
   config :path, :validate => :string, :required => true
 
+  # The format of output data (json, preformatted_field)
+  config :format, :validate => :string, :required => true, :default => "json"
+
+  # If the output type is 'preformatted_field', we only extract the
+  config :formatted_field, :validate => :string, :default => ""
+
   public
   def register
-      puts "[#{self}] We have a logger in metlog_file output: [#{@logger}]"
       require "fileutils" # For mkdir_p
-      @fileclient = FileClient.new(@path, @logger)
+
+      @fileclient = FileClient.new(@path, @logger, @format, @formatted_field)
       @push_thread = Thread.new(@fileclient) do |client|
           client.run
       end
@@ -52,10 +58,13 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
     # Only flush the bufffers when we have idle time
     class FileClient
         public
-        def initialize(path, logger)
+        def initialize(path, logger, format, formatted_field)
             @path = path
             @queue  = Queue.new
             @logger = logger
+
+            @format = format
+            @formatted_field = formatted_field
 
             @logfile = open(path)
 
@@ -77,12 +86,19 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
                 begin
                     # append to disk as they come in
                     event = @queue.pop
-                    @logfile.puts(event.to_json)
+
+                    case @format
+                    when "json"
+                        @logfile.puts(event.to_json)
+                    when "preformatted_field"
+                        @logfile.puts(event['fields'][@formatted_field])
+                    end
 
                     # This is probably a bad idea to flush all the
                     # time.  Not quite sure what JRuby does, if it
                     # does anything with I/O buffers
                     @logfile.flush
+
                 rescue => e
                     @logger.debug(["backtrace", e.backtrace])
                     break
@@ -115,6 +131,3 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
     end # class Client
 
 end # class LogStash::Outputs::MetlogFile
-
-
-
