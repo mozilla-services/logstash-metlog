@@ -34,6 +34,7 @@ class LogStash::Filters::Tagger < LogStash::Filters::Base
 
     public
     def filter(event)
+        return unless filter?(event)
 
         if @pattern.length > 0
             matched = true

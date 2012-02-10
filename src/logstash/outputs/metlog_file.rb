@@ -37,11 +37,8 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
 
     public
     def receive(event)
-        if !@tags.empty?
-            if (event.tags & @tags).size != @tags.size
-                return
-            end
-        end
+        return unless output?(event)
+
         @fileclient.enqueue(event)
     end # def receive
 

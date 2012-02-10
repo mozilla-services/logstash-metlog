@@ -34,11 +34,7 @@ class LogStash::Outputs::MetlogStatsd < LogStash::Outputs::Base
 
   public
   def receive(event)
-    if !@tags.empty?
-      if (event.tags & @tags).size != @tags.size
-        return
-      end
-    end
+    return unless output?(event)
 
     begin
         ns = event.fields['fields']['logger']
