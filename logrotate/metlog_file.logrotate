@@ -1,0 +1,11 @@
+"/var/log/metlog_hdfs.log" {
+    rotate 20
+    size=64M
+    create
+    ifempty
+    daily
+    postrotate
+        # Ship logs to HDFS
+        /opt/metlog/bin/rotate_logs.sh
+    endscript
+}
