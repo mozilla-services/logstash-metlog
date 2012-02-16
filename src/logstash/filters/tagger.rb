@@ -36,11 +36,6 @@ class LogStash::Filters::Tagger < LogStash::Filters::Base
     def filter(event)
         return unless filter?(event)
 
-        if @pattern.length > 0
-            matched = true
-        else
-            matched = false
-        end
         @pattern.each_pair{ |keypath, match_pattern|
             obj = event.fields
             keypath.split('/').each{ |segment|
@@ -51,20 +46,11 @@ class LogStash::Filters::Tagger < LogStash::Filters::Base
                 obj = obj[segment]
             }
 
-            if obj.to_s == '*'
-                matched = true
-                break
-            elif obj.to_s != match_pattern
-                matched = false
+            if match_pattern == '*' or obj.to_s == match_pattern
+                filter_matched(event)
                 break
             end
         }
-
-        if matched
-            # This will automatically apply all the tags that we
-            # defined in the configuration file
-            filter_matched(event)
-        end
     end # def filter
 
 end # class LogStash::Filters::Tagger

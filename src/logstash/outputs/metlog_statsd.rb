@@ -51,7 +51,7 @@ class LogStash::Outputs::MetlogStatsd < LogStash::Outputs::Base
     elsif 'timer' == event.fields['type']
         @client.timing(ns, key, value, rate)
     else
-        @logger.warn("Unexpected event passed into the #{@config_name}: #{event}")
+        @logger.warn("Unexpected event passed into metlog_statsd. Event => #{event}")
     end
   end # def receive
 end # class LogStash::Outputs::MetlogStatsd

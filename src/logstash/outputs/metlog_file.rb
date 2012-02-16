@@ -86,9 +86,25 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
 
                     case @format
                     when "json"
-                        @logfile.puts(event.to_json)
+                        data_hash = event.to_hash
+                        # Replace all keys that start with '@' with
+                        # 'LS_' to create a namespace for logstash
+                        # messages
+
+                        new_map = {}
+                        data_hash.each do |k, v|
+                            if k.start_with? '@'
+                                new_map["LS_" + k[1..-1]] = v
+                            else
+                                new_map[k] = v
+                            end
+                        end
+                        @logfile.puts(new_map.to_json())
                     when "preformatted_field"
-                        @logfile.puts(event['fields'][@formatted_field])
+                        txt = event['fields'][@formatted_field]
+                        if txt
+                            @logfile.puts(txt)
+                        end
                     end
 
                     # This is probably a bad idea to flush all the
