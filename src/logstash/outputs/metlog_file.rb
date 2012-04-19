@@ -84,8 +84,6 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
                 begin
                     # append to disk as they come in
                     event = @queue.pop
-                    puts "Got event #{event}\n"
-
                     case @format
                     when "json"
                         data_hash = event.to_hash
