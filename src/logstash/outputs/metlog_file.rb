@@ -23,6 +23,7 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
   config :format, :validate => :string, :required => true, :default => "json"
 
   # If the output type is 'preformatted_field', we only extract the
+  # one field from the JSON blob
   config :formatted_field, :validate => :string, :default => ""
 
   public
@@ -83,6 +84,7 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
                 begin
                     # append to disk as they come in
                     event = @queue.pop
+                    puts "Got event #{event}\n"
 
                     case @format
                     when "json"
@@ -101,7 +103,16 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
                         end
                         @logfile.puts(new_map.to_json())
                     when "preformatted_field"
-                        txt = event['fields'][@formatted_field]
+                        obj = event
+                        @formatted_field.split('/').each{ |segment|
+                            if (obj == nil)
+                                # Oops - we ran off the end of the keypath
+                                return nil
+                            end
+                            obj = obj[segment]
+                        }
+
+                        txt = obj.to_s
                         if txt
                             @logfile.puts(txt)
                         end
