@@ -16,7 +16,6 @@ Output plugins provided:
 
     * logstash.outputs.metlog_file
     * logstash.outputs.metlog_statsd
-    * logstash.outputs.simple_statsd
 
 Input plugins
 =============
@@ -35,6 +34,7 @@ plugin from logstash. ::
 
     input {
         zeromq_hs {
+           # Setup a ZMQ::REP socket that listens on port 5180
            type => "metlog"
            mode => "server"
            address => "tcp://*:5180"
@@ -66,7 +66,7 @@ the tag 'output_statsd' to the event. ::
 
     filter {
         tagger {
-            # all timer messages go to statsd
+            # all timer messages are tagged with 'output_statsd'
             type => "metlog"
             pattern => [ "fields/type", "timer"]
             add_tag => [ "output_statsd" ]
@@ -81,7 +81,7 @@ tag will be applied. ::
 
     filter {
         tagger {
-            # all timer messages go to statsd
+            # all timer and counter messages are tagged with 'output_statsd'
             type => "metlog"
             pattern => [ "fields/type", "timer", "fields/type", "counter" ]
             add_tag => [ "output_statsd" ]
@@ -128,9 +128,21 @@ sends statsd messages to localhost at port 8125.  ::
 
     output {
         metlog_statsd {
-            # Timer messages get routed to statsd
+            # Route any message tagged with 'output_statsd'
+            # to the statsd server
             tags => ["output_statsd"]
             host => '127.0.0.1'
             port => 8125
         }
     }
+
+
+metlog_file configuration
+-------------------------
+
+This output plugin is able to output either JSON blobs or plain text.
+
+In general, JSON file outputs are used for 
+
+For plain text, the plugin will extract a single field in the JSON
+blob and will write that out
