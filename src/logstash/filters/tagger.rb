@@ -41,7 +41,8 @@ class LogStash::Filters::Tagger < LogStash::Filters::Base
             keypath.split('/').each{ |segment|
                 if (obj == nil)
                     # Oops - we ran off the end of the keypath
-                    return nil
+                    # skip to the next keypath
+                    next
                 end
                 obj = obj[segment]
             }
