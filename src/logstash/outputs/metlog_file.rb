@@ -105,7 +105,9 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
                         @formatted_field.split('/').each{ |segment|
                             if (obj == nil)
                                 # Oops - we ran off the end of the keypath
-                                return nil
+                                # Skip to the next item in the event
+                                # loop
+                                next
                             end
                             obj = obj[segment]
                         }
