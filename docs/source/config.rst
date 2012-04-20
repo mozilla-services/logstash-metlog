@@ -88,3 +88,49 @@ tag will be applied. ::
         }
     }
 
+
+Output plugins
+==============
+
+metlog_statsd configuration
+---------------------------
+
+The standard statsd output plugin provided by logstash is designed to
+repeatedly create the same kind of statsd message.
+
+This plugin provides a basic interface to talk to a statsd server.
+
+The plugin will map event attributes into statsd using ::
+
+    namespace = event.fields['fields']['logger']
+    key = event.fields['fields']['name']
+    value = event.fields['payload'].to_f
+    rate = event.fields['fields']['rate'].to_f
+
+The default sampling rate is 1.
+
+The value of event.fields['type'] must be one of 'counter' or 'timer'.
+
+For counter messages, the final statsd message is constructed using ::
+
+    `namespace`.`key`:`value`|c|`rate`
+
+For timer messages, the final statsd message is constructed using ::
+
+    `namespace`.`key`:`value`|ms|`rate`
+
+Configuration of the plugin requires setting a host, port and a list
+of tags which the output plugin should watch for. At least one tag
+must match for the output plugin to be triggered.
+
+The following configuration monitors only the 'output_statsd' tag and
+sends statsd messages to localhost at port 8125.  ::
+
+    output {
+        metlog_statsd {
+            # Timer messages get routed to statsd
+            tags => ["output_statsd"]
+            host => '127.0.0.1'
+            port => 8125
+        }
+    }
