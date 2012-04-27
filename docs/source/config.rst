@@ -145,4 +145,42 @@ This output plugin is able to output either JSON blobs or plain text.
 In general, JSON file outputs are used for 
 
 For plain text, the plugin will extract a single field in the JSON
-blob and will write that out
+blob and will write that out. Typically, this is the `payload` key so
+your configuration will look like this ::
+
+    metlog_file {
+        # The plaintext logfile
+        tags => ["output_text"]
+        format => "preformatted_field"
+        formatted_field => "payload"
+        path => "/var/log/metlog/metlog_classic.log"
+    }
+
+If you need to address a different part of the logstash event, simply
+use '/' notation. A concrete example of this is writing out CEF
+messages. ::
+
+    metlog_file {
+        # CEF messages just go out to a dedicated plain text logger
+        tags => ["output_cef"]
+        format => "preformatted_field"
+        formatted_field => "fields/logtext"
+        path => "/var/log/metlog/metlog_cef.log"
+    }
+
+Log rotation is handled using logrotate to rename the file and then
+sending a SIGHUP to the logstash process. A sample logrotate script is
+follows ::
+
+    "/var/log/metlog/metlog_cef.log" {
+        rotate 20
+        size=64M
+        create
+        ifempty
+        daily
+        postrotate
+            # Send a SIGHUP to to your logstash process here
+            # using whatever process management tool you happen to be
+            # using
+        endscript
+    }
