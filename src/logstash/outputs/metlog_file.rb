@@ -1,6 +1,7 @@
 require "logstash/namespace"
 require "logstash/outputs/base"
 require "logstash/util/signals"
+require "time"
 
 # File output.
 #
@@ -25,6 +26,8 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
   # If the output type is 'preformatted_field', we only extract the
   # one field from the JSON blob
   config :formatted_field, :validate => :string, :default => ""
+
+  config :prefix_timestamps, :validate => :boolean, :default => true
 
   public
   def register
@@ -114,7 +117,12 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
 
                         txt = obj.to_s
                         if txt
-                            @logfile.puts(txt)
+                            if @prefix_timestamps 
+                                timestamp = Time.now.utc.iso8601 + ' '
+                            else
+                                timestamp = ''
+                            end if
+                            @logfile.puts("#{timestamp}#{txt}")
                         end
                     end
 
