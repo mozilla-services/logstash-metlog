@@ -27,7 +27,7 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
   # one field from the JSON blob
   config :formatted_field, :validate => :string, :default => ""
 
-  config :prefix_timestamps, :validate => :boolean, :default => true
+  config :prefix_timestamps, :validate => :boolean, :default => false
 
   public
   def register
@@ -89,10 +89,22 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
                     event = @queue.pop
                     case @format
                     when "json"
-                        data_hash = event.to_hash
                         # Replace all keys that start with '@' with
                         # 'LS_' to create a namespace for logstash
                         # messages
+
+                        data_hash = event.to_hash
+                        #
+                        # discard the logstash envelope
+                        @formatted_field.split('/').each{ |segment|
+                            if (data_hash == nil)
+                                # Oops - we ran off the end of the keypath
+                                # Skip to the next item in the event
+                                # loop
+                                next
+                            end
+                            data_hash = data_hash[segment]
+                        }
 
                         new_map = {}
                         data_hash.each do |k, v|
