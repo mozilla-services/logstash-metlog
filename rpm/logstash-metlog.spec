@@ -1,7 +1,7 @@
 %define _logstash_dir /opt/logstash
 
 Name:          logstash-metlog
-Version:       0.5
+Version:       0.4
 Release:       1
 Summary:       Logstash plugins for the MetLog framework
 Packager:      Pete Fritchman <petef@mozilla.com>
@@ -35,5 +35,10 @@ rm -rf %{buildroot}
 %{_logstash_dir}/plugins
 
 %changelog
+* Wed Jun 13 2012 Victor Ng <vng@mozilla.com>
+- release 0.4
+- fixed bugs in metlog_file output plugin to address arbitrary keys in
+  the JSON blob to send to the text output
+
 * Tue Apr 10 2012 Pete Fritchman <petef@mozilla.com>
 - Initial package
