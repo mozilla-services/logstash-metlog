@@ -25,7 +25,7 @@ to be properly parsed, filtered, and shipped.
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}%{_logstash_dir}/plugins
-cp -rp src/logstash/* %{buildroot}%{_logstash_dir}/plugins
+cp -rp src/logstash %{buildroot}%{_logstash_dir}/plugins
 
 %clean
 rm -rf %{buildroot}
