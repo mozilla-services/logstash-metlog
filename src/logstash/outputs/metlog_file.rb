@@ -89,11 +89,22 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
                     event = @queue.pop
                     case @format
                     when "json"
-                        data_hash = event.to_hash
                         # Replace all keys that start with '@' with
                         # 'LS_' to create a namespace for logstash
                         # messages
 
+                        obj = event
+                        @formatted_field.split('/').each{ |segment|
+                            if (obj == nil)
+                                # Oops - we ran off the end of the keypath
+                                # Skip to the next item in the event
+                                # loop
+                                next
+                            end
+                            obj = obj[segment]
+                        }
+
+                        data_hash = obj.to_hash
                         new_map = {}
                         data_hash.each do |k, v|
                             if k.start_with? '@'
