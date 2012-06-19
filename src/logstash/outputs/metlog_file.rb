@@ -18,7 +18,7 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
 
   # The path to the file to write. Event fields can be used here,
   # like "/var/log/logstash/%{@source_host}/%{application}"
-  config :path, :validate => :string, :required => true
+  config :path, :validate => :string, :required => true, :default => ""
 
   # The format of output data (json, preformatted_field)
   config :format, :validate => :string, :required => true, :default => "json"
@@ -27,13 +27,16 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
   # one field from the JSON blob
   config :formatted_field, :validate => :string, :default => ""
 
-  config :prefix_timestamps, :validate => :boolean, :default => false
+  config :prefix_timestamps, :validate => :boolean, :required => true, :default => false
 
   public
   def register
       require "fileutils" # For mkdir_p
 
-      @fileclient = FileClient.new(@path, @logger, @format, @formatted_field)
+      # XXX: This is not obvious - you need to pass the the instance
+      # attributes of the plugin down to the FileClient or else you
+      # won't be able to see them in the main run loop
+      @fileclient = FileClient.new(@path, @logger, @format, @formatted_field, @prefix_timestamps)
       @push_thread = Thread.new(@fileclient) do |client|
           client.run
       end
@@ -59,10 +62,11 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
     # Only flush the bufffers when we have idle time
     class FileClient
         public
-        def initialize(path, logger, format, formatted_field)
+        def initialize(path, logger, format, formatted_field, prefix_timestamps)
             @path = path
             @queue  = Queue.new
             @logger = logger
+            @prefix_timestamps = prefix_timestamps
 
             @format = format
             @formatted_field = formatted_field
@@ -130,11 +134,11 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
 
                         txt = obj.to_s
                         if txt
-                            if @prefix_timestamps 
+                            if @prefix_timestamps
                                 timestamp = event['timestamp'] + ' '
                             else
                                 timestamp = ''
-                            end if
+                            end
                             @logfile.puts("#{timestamp}#{txt}")
                         end
                     end
