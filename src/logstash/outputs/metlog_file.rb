@@ -115,6 +115,7 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
                             end
                         end
                         @logfile.puts(new_map.to_json())
+
                     when "preformatted_field"
                         obj = event
                         @formatted_field.split('/').each{ |segment|
@@ -130,7 +131,7 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
                         txt = obj.to_s
                         if txt
                             if @prefix_timestamps 
-                                timestamp = Time.now.utc.iso8601 + ' '
+                                timestamp = event['timestamp'] + ' '
                             else
                                 timestamp = ''
                             end if
