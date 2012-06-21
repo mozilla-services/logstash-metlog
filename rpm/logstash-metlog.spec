@@ -35,6 +35,10 @@ rm -rf %{buildroot}
 %{_logstash_dir}/plugins
 
 %changelog
+* Tue Jun 19 2012 Victor Ng <vng@mozilla.com>
+ - release 05.
+ - added ISO8601 timestamp prefix options to metlog_file
+
 * Wed Jun 13 2012 Victor Ng <vng@mozilla.com>
 - release 0.4
 - fixed bugs in metlog_file output plugin to address arbitrary keys in
