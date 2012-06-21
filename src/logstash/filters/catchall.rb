@@ -23,11 +23,10 @@ class LogStash::Filters::Catchall < LogStash::Filters::Base
 
     public
     def filter(event)
-        return unless filter?(event)
-
         matched_tags = @tags & event.tags
         if matched_tags.empty?
-            event.tags.append('filter-catchall')
+            event.tags.push('filter-catchall')
+            filter_matched(event)
         end
     end # def filter
 
