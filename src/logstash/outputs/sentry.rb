@@ -6,7 +6,7 @@
 require "net/http"
 require "uri"
 require 'time'
-require 'hmac-sha1'
+require 'logstash/util/hmac/hmac-sha1'
 
 class SentryServer
     public 
