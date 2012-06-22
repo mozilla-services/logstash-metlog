@@ -152,6 +152,7 @@ your configuration will look like this ::
         # The plaintext logfile
         tags => ["output_text"]
         format => "preformatted_field"
+        prefix_timestamps => true
         formatted_field => "payload"
         path => "/var/log/metlog/metlog_classic.log"
     }
@@ -167,6 +168,14 @@ messages. ::
         formatted_field => "fields/logtext"
         path => "/var/log/metlog/metlog_cef.log"
     }
+
+In some cases, you will want to write out the raw metlog JSON event.
+Hadoop is one such case
+
+# TODO: List all required and optional parameters for :
+# Inputs: zeromq_hs
+# Filter: tagger, catchall
+# Outputs: metlog_sentry, metlog_file, metlog_statsd
 
 Log rotation is handled using logrotate to rename the file and then
 sending a SIGHUP to the logstash process. A sample logrotate script is

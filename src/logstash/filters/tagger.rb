@@ -1,12 +1,5 @@
 # This filter decodes JSON blobs and matches on 
-# simple key/value pairs.  
-#
-# Basic usage in your logstash configuration
-#
-#
-#
-#
-
+# simple key/value pairs.
 
 require "logstash/filters/base"
 require "logstash/namespace"
