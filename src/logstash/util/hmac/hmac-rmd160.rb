@@ -1,4 +1,4 @@
-require 'hmac'
+require 'logstash/util/hmac/hmac'
 require 'digest/rmd160'
 
 module HMAC
