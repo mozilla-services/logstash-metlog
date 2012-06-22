@@ -27,7 +27,7 @@ class LogStash::Outputs::MetlogFile < LogStash::Outputs::Base
   # one field from the JSON blob
   config :formatted_field, :validate => :string, :default => ""
 
-  config :prefix_timestamps, :validate => :boolean, :required => true, :default => false
+  config :prefix_timestamps, :validate => :boolean, :required => false, :default => false
 
   public
   def register
