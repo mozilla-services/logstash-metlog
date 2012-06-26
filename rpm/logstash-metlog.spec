@@ -1,7 +1,7 @@
 %define _logstash_dir /opt/logstash
 
 Name:          logstash-metlog
-Version:       0.7
+Version:       0.8
 Release:       1
 Summary:       Logstash plugins for the MetLog framework
 Packager:      Pete Fritchman <petef@mozilla.com>
@@ -35,6 +35,10 @@ rm -rf %{buildroot}
 %{_logstash_dir}/plugins
 
 %changelog
+* Tue Jun 26 2012 Victor Ng <vng@mozilla.com>
+- release 0.8
+- No code changes.  Just added a requirement on 1.2.0 > logstash >= 1.1.0 
+
 * Fri Jun 22 2012 Victor Ng <vng@mozilla.com>
 - release 0.7
 - embedded the ruby-hmac 0.4 to support hmac-sha1 digests for Sentry
