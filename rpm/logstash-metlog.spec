@@ -11,7 +11,8 @@ URL:           https://github.com/mozilla-services/logstash-metlog
 Source0:       %{name}.tar.gz
 BuildRoot:     %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 AutoReqProv:   no
-Requires:      logstash
+Requires:      logstash >= 1.1.0
+Conflicts:     logstash > 1.2.0
 
 %description
 Logstash plugins to enable messages coming from the MetLog framework
