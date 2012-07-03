@@ -1,7 +1,7 @@
 %define _logstash_dir /opt/logstash
 
 Name:          logstash-metlog
-Version:       0.8
+Version:       0.8.1
 Release:       1
 Summary:       Logstash plugins for the MetLog framework
 Packager:      Pete Fritchman <petef@mozilla.com>
@@ -11,7 +11,7 @@ URL:           https://github.com/mozilla-services/logstash-metlog
 Source0:       %{name}.tar.gz
 BuildRoot:     %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 AutoReqProv:   no
-Requires:      logstash = 1.1.0
+Requires:      logstash = 1.1.0, python26-argparse
 
 %description
 Logstash plugins to enable messages coming from the MetLog framework
@@ -25,7 +25,9 @@ to be properly parsed, filtered, and shipped.
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}%{_logstash_dir}/plugins
+mkdir -p %{buildroot}%{_logstash_dir}/bin
 cp -rp src/logstash %{buildroot}%{_logstash_dir}/plugins
+cp -p logrotate/bin/upload_log.py %{buildroot}%{_logstash_dir}/bin
 
 %clean
 rm -rf %{buildroot}
@@ -33,8 +35,14 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %{_logstash_dir}/plugins
+%attr(755,root,root) %{_logstash_dir}/bin/upload_log.py
 
 %changelog
+* Tue Jul 3 2012 Victor Ng <vng@mozilla.com>
+- release 0.8.1
+- Added a new HDFS upload script
+- Added dependency on python26-argparse for HDFS uploads
+
 * Tue Jun 26 2012 Victor Ng <vng@mozilla.com>
 - release 0.8
 - No code changes.  Just added a requirement on 1.2.0 > logstash >= 1.1.0 
