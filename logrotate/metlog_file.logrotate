@@ -4,8 +4,9 @@
     create
     ifempty
     daily
+    copytruncate
     postrotate
         # Ship logs to HDFS
-        /opt/metlog/bin/rotate_logs.sh
+        /opt/metlog/bin/upload_log.py --config /etc/metlog/sync_metrics_hdfs.ini
     endscript
 }
