@@ -1,11 +1,13 @@
 "/var/log/metlog_hdfs.log" {
-    rotate 20
+    rotate 100
+    nocreate  # Never create a new log file or else we'll lose the
+              # file handle
     size=64M
-    create
-    ifempty
+    notifempty
     daily
+    copytruncate
     postrotate
         # Ship logs to HDFS
-        /opt/metlog/bin/rotate_logs.sh
+        /opt/metlog/bin/upload_log.py --config /etc/metlog/sync_metrics_hdfs.ini
     endscript
 }
