@@ -35,7 +35,7 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %{_logstash_dir}/plugins
-%attr(754,root,root) %{_logstash_dir}/bin/upload_log.py
+%attr(755,root,root) %{_logstash_dir}/bin/upload_log.py
 
 %changelog
 * Tue Jul 3 2012 Victor Ng <vng@mozilla.com>
