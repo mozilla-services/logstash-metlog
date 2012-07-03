@@ -25,9 +25,9 @@ to be properly parsed, filtered, and shipped.
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}%{_logstash_dir}/plugins
-cp -rp src/logstash %{buildroot}%{_logstash_dir}/plugins
 mkdir -p %{buildroot}%{_logstash_dir}/bin
-cp -rp logrotate/upload_log.py %{buildroot}%{_logstash_dir}/bin
+cp -rp src/logstash %{buildroot}%{_logstash_dir}/plugins
+cp -rp logrotate/bin %{buildroot}%{_logstash_dir}/bin
 
 %clean
 rm -rf %{buildroot}
