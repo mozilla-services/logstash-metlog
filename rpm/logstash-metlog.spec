@@ -1,7 +1,7 @@
 %define _logstash_dir /opt/logstash
 
 Name:          logstash-metlog
-Version:       0.8.1
+Version:       0.8.2
 Release:       1
 Summary:       Logstash plugins for the MetLog framework
 Packager:      Pete Fritchman <petef@mozilla.com>
@@ -38,6 +38,11 @@ rm -rf %{buildroot}
 %attr(755,root,root) %{_logstash_dir}/bin/upload_log.py
 
 %changelog
+* Tue Jul 10 2012 Victor Ng <vng@mozilla.com>
+- release 0.8.2
+- Added exception handling around the sentry plugin.  Failed transport
+  to sentry will result in messages going to logstash's default logger
+
 * Tue Jul 3 2012 Victor Ng <vng@mozilla.com>
 - release 0.8.1
 - Added a new HDFS upload script
