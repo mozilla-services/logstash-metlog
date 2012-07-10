@@ -25,7 +25,7 @@ class LogStash::Outputs::MetlogSentry < LogStash::Outputs::Base
 
     public
     def register
-        @sentry_holder = SentryHolder.new(@dsn)
+        @sentry_holder = SentryHolder.new(@dsn, @logger)
         @push_thread = Thread.new(@sentry_holder) do |client|
             client.run
         end
@@ -40,17 +40,31 @@ class LogStash::Outputs::MetlogSentry < LogStash::Outputs::Base
 
     class SentryHolder
         public
-        def initialize(dsn)
+        def initialize(dsn, logger)
             @dsn = dsn
-            @sentry = SentryServer.new(dsn)
+            @logger = logger
             @queue  = Queue.new
+            @err_queue = Queue.new
+
+            @sentry = SentryServer.new(dsn, @err_queue)
         end
 
         public
         def run
             while true
                 event = @queue.pop
-                @sentry.send(event['payload'], event['fields']['epoch_timestamp'])
+                @sentry.send(event)
+
+                begin
+                    err_event = @err_queue.pop(non_block=true)
+                    @logger.warn("Sentry appears to be down.", 
+				    :sentry_event => err_event['payload'],
+				    :sentry_timestamp => event['fields']['epoch_timestamp']
+				)
+                rescue ThreadError => e
+                    # Do nothing - we don't really care if there are no error
+                    # events ot process
+                end
             end
         end # def run
 

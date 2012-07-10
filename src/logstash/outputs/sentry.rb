@@ -10,16 +10,28 @@ require 'logstash/util/hmac/hmac-sha1'
 
 class SentryServer
     public 
-    def initialize(dsn)
+    def initialize(dsn, err_queue)
         @dsn_uri, @server_uri = compute_server_uri(dsn)
+        @err_queue = err_queue
     end
 
     # Send an encoded message to the sentry server
     # with an optional timestamp
     public
-    def send(message, timestamp)
+    def send(event)
+        message = event['payload']
+        timestamp=  event['fields']['epoch_timestamp']
+
         headers = compute_headers(message, @dsn_uri, timestamp)
-        return send_message(message, headers, @server_uri)
+
+        result = send_message(message, headers, @server_uri).to_i
+
+        # Anything that's not HTTP 20x, push the event back
+        if (result < 200 or result > 299)
+            @err_queue.push(event)
+        end
+
+        return result
     end
 
     private
@@ -64,10 +76,16 @@ class SentryServer
     def send_message(message, headers, server_uri)
         req = Net::HTTP::Post.new(server_uri.path, initheader = headers)
         req.body = message
-        response = Net::HTTP.new(server_uri.host, server_uri.port).start {|http| 
-            http.request(req)
-        }
-        return response.code
+        begin
+            response = Net::HTTP.new(server_uri.host, server_uri.port).start {|http| 
+                http.request(req)
+            }
+            return response.code
+        rescue Errno::ECONNREFUSED => e
+            return 503 # Service Unavailable
+        else
+            return 500 # Something weird happend
+        end
     end
 
     # Compute the headers for a given message and the DSN URI
@@ -99,7 +117,9 @@ def main()
     # Get the current timestamp
     timestamp = Time.now.to_f
 
-    sender = SentryServer.new(dsn)
+    err_queue = Queue.new
+
+    sender = SentryServer.new(dsn, err_queue)
     response_code = sender.send(encoded_message, timestamp)
     puts "Got sentry status: [#{response_code}]"
 end
