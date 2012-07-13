@@ -440,6 +440,9 @@ class LogStash::Agent
     return if @is_shutting_down
 
     @is_shutting_down = true
+
+    uses_zeromq = false
+
     shutdown_thread = Thread.new do
       LogStash::Util::set_thread_name("logstash shutdown process")
       # TODO(sissel): Make this a flag
@@ -449,8 +452,18 @@ class LogStash::Agent
       # Tell everything to shutdown.
       @logger.debug("Plugins to shutdown", :plugins => plugins.keys.collect(&:to_s))
       plugins.each do |p, thread|
-        @logger.info("Sending shutdown to: #{p.to_s}", :plugin => p)
+        @logger.info("Sending shutdown to: [#{p.to_s}]", :plugin => p)
+        @logger.info("Sending shutdown to class: [#{p.class.name}]")
         p.shutdown(finished_queue)  # <- plugin.shutdown invokes plugin.teardown
+        if p.class.name.downcase.include?('zeromq')
+            uses_zeromq = true
+            @logger.info("safe_0mq: found a zeromq plugin")
+        end
+        if p.class.name == "LogStash::Inputs::SafeZeroMQ"
+            @logger.info("safe_0mq: joining on the SafeZeroMQ thread to wait for complete shutdown")
+            thread.join
+            @logger.info("safe_0mq: worker thread has terminated")
+        end
       end
 
       # Now wait until the queues we were given are empty.
@@ -479,8 +492,19 @@ class LogStash::Agent
 
     # Wait until all plugins are shutdown
     shutdown_thread.join
-    @logger.warn("Plugin shutdown thread has completed")
 
+    @logger.warn("Plugin shutdown thread has completed")
+    if uses_zeromq
+        @logger.info("safe_0mq: Attempting to terminate context")
+        require 'logstash/util/safe_zmq'
+        LogStash::Util::SafeZeroMQ::CONTEXT.terminate
+
+        # termination is also async - wait a sec...
+        sleep 1
+        @logger.info("safe_0mq: Success! terminated context")
+    end
+
+    @logger.info("safe_0mq: shutdown_plugins is complete")
     @is_shutting_down = false
   end
 
