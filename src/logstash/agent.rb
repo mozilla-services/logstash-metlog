@@ -449,9 +449,8 @@ class LogStash::Agent
       # Tell everything to shutdown.
       @logger.debug("Plugins to shutdown", :plugins => plugins.keys.collect(&:to_s))
       plugins.each do |p, thread|
-        @logger.debug("Sending shutdown to: #{p.to_s}", :plugin => p)
+        @logger.info("Sending shutdown to: #{p.to_s}", :plugin => p)
         p.shutdown(finished_queue)  # <- plugin.shutdown invokes plugin.teardown
-        thread.join # Wait until the plugin shuts down until shutting down the next plugin
       end
 
       # Now wait until the queues we were given are empty.

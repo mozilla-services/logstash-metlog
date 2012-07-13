@@ -40,16 +40,53 @@ class LogStash::Inputs::SafeZeroMQ < LogStash::Inputs::Base
                 "while setting ZMQ:HWM == #{@queue_size.inspect}")
     error_check(@subscriber.setsockopt(ZMQ::SUBSCRIBE, @queue),
                 "while setting ZMQ:SUBSCRIBE == #{@queue.inspect}")
-    error_check(@subscriber.setsockopt(ZMQ::LINGER, 1),
-                "while setting ZMQ::LINGER == 1)")
+    error_check(@subscriber.setsockopt(ZMQ::LINGER, 0),
+                "while setting ZMQ::LINGER == 0)")
     setup(@subscriber, @address)
+
+    @plugin_state = :registered
   end # def register
 
-  def teardown
-      @logger.warn("tearing down 0mq parts")
-      @logger.warn("blah blah blah")
-      error_check(@subscriber.close, "while closing the 0mq subscriber")
-      @logger.warn("Success shutting down 0mq subscriber socket")
+  # This method is called when someone or something wants this plugin to shut
+  # down. When you successfully shutdown, you must call 'finished'
+  # You must also call 'super' in any subclasses.
+  public
+  def shutdown(queue)
+    # We overload the shutdown method for the 0mq input plugin so that
+    # the main run loop
+    #
+    @logger.info("Received shutdown signal", :plugin => self)
+    @logger.info("safe_0mq plugin state", :plugin_state => @plugin_state)
+
+    @shutdown_queue = queue
+
+    # TODO: @plugin_state is an instance variable.  It can be set from
+    # logstash.agent invoking the shutdown method, which means
+    # external threads access this worker's internal state.  Access to
+    # all instance variables needs to be guarded with synchronization
+    # in order to make sure we don't get volatile memory issues
+
+    if @plugin_state == :finished
+      finished
+    else
+      @plugin_state = :terminating
+    end
+
+    @logger.info("safe_0mq setting after shutdown plugin state", :plugin_state => @plugin_state)
+    @logger.info("safe_0mq shutdown method completed")
+  end # def shutdown
+
+  def thread_teardown
+      @logger.info("safe_0mq: tearing down 0mq parts")
+      begin
+          @subscriber.close
+          # This seems to sleep past the end of process
+          sleep 1 # This is stupid.  It's a race condition waiting to happen.
+                  # 0mq's close operation is an async process
+      rescue => e
+          @logger.error("safe_0mq: Error while closing subscriber", :error => e)
+      end
+      @logger.info("safe_0mq: Success shutting down 0mq subscriber socket")
   end # def teardown
 
   def server?
@@ -58,18 +95,38 @@ class LogStash::Inputs::SafeZeroMQ < LogStash::Inputs::Base
 
   def run(output_queue)
     begin
+      @plugin_state = :running
+
+      @logger.info("safe_0mq run loop starting")
+
       loop do
         msg = ''
-        rc = @subscriber.recv_string(msg)
+        # We want to do a non-blocking recv or else we won't be able
+        # to recognize when
+        @logger.info("safe_0mq: Pre recv_string")
+        rc = @subscriber.recv_string(msg,  ZMQ::NOBLOCK)
+        @logger.info("safe_0mq: Post recv_string", :msg => msg)
         error_check(rc, "in recv_string")
-        @logger.debug("0mq: receiving", :event => msg)
         if msg.length > 0 
+            @logger.info("0mq: receiving", :event => msg)
             e = self.to_event(msg, @source)
             if e
               output_queue << e
             end
+        else
+            # No messages, just sleep for 1 ms so we don't chew cycles
+            # needlessly
+            sleep(0.0001)
+            @logger.info("sleeping..")
+        end
+
+        if @plugin_state == :terminating
+            @logger.info("safe_0mq: runloop plugin_state", :plugin_state => @plugin_state)
+            break
         end
       end
+      thread_teardown
+      @logger.info("safe_0mq: run loop is complete")
     rescue => e
       @logger.debug("ZMQ Error", :subscriber => @subscriber,
                     :exception => e, :backtrace => e.backtrace)
