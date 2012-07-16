@@ -35,11 +35,9 @@ class LogStash::Inputs::SafeZeroMQ < LogStash::Inputs::Base
     require "ffi-rzmq"
     require "logstash/util/safe_zmq"
     self.class.send(:include, LogStash::Util::SafeZeroMQ)
-    @subscriber = context.socket(ZMQ::SUB)
+    @subscriber = context.socket(ZMQ::PULL)
     error_check(@subscriber.setsockopt(ZMQ::HWM, @queue_size),
                 "while setting ZMQ:HWM == #{@queue_size.inspect}")
-    error_check(@subscriber.setsockopt(ZMQ::SUBSCRIBE, @queue),
-                "while setting ZMQ:SUBSCRIBE == #{@queue.inspect}")
     error_check(@subscriber.setsockopt(ZMQ::LINGER, 0),
                 "while setting ZMQ::LINGER == 0)")
     setup(@subscriber, @address)
