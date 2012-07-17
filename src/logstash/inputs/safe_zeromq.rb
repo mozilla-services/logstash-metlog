@@ -101,10 +101,7 @@ class LogStash::Inputs::SafeZeroMQ < LogStash::Inputs::Base
         msg = ''
         # We want to do a non-blocking recv or else we won't be able
         # to recognize when
-        @logger.info("safe_0mq: Pre recv_string")
         rc = @subscriber.recv_string(msg,  ZMQ::NOBLOCK)
-        @logger.info("safe_0mq: Post recv_string", :msg => msg)
-        error_check(rc, "in recv_string")
         if msg.length > 0 
             @logger.info("0mq: receiving", :event => msg)
             e = self.to_event(msg, @source)
@@ -112,10 +109,9 @@ class LogStash::Inputs::SafeZeroMQ < LogStash::Inputs::Base
               output_queue << e
             end
         else
-            # No messages, just sleep for 1 ms so we don't chew cycles
+            # No messages, just sleep for 10 ms so we don't chew cycles
             # needlessly
-            sleep(0.0001)
-            @logger.info("sleeping..")
+            sleep(0.001)
         end
 
         if @plugin_state == :terminating
