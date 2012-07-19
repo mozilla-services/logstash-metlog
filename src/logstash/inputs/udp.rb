@@ -12,6 +12,7 @@ require "timeout"
 class LogStash::Inputs::Udp < LogStash::Inputs::Base
 
   config_name "udp"
+  plugin_status "experimental"
 
   # When mode is `server`, the address to listen on.
   # When mode is `client`, the address to connect to.
@@ -25,41 +26,14 @@ class LogStash::Inputs::Udp < LogStash::Inputs::Base
   # `client` connects to a server.
   config :mode, :validate => ["server", "client"], :default => "server"
 
+  @source = "udp://#{@host}:#{@port}"
+
   public
   def register
-    if server?
       @logger.info("Starting udp input listener on #{@host}:#{@port}")
       @server_socket = UDPSocket.new
-      
-      # Just hardcode the port to make sure things are working the way
-      # I expect them to
-      # @server_socket.bind(@host, @port)
-      @server_socket.bind(nil, 1234)
-
-      # set the max message size to 32k for now
-      @max_msg = 32000
-    end
+      @server_socket.bind(@host, @port)
   end # def register
-
-  private
-  def handle_socket(socket, output_queue, event_source)
-    begin
-      loop do
-        buf = nil
-        buf = socket.recvfrom(@max_msg)
-        e = self.to_event(buf, event_source)
-        if e
-          output_queue << e
-        end
-      end # loop do
-    rescue => e
-      @logger.debug(["Closing connection with #{socket}", $!])
-      @logger.debug(["Backtrace", e.backtrace])
-    rescue Timeout::Error
-      @logger.debug("Closing connection with #{socket} after read timeout")
-    end # begin
-
-  end
 
   private
   def server?
@@ -69,21 +43,21 @@ class LogStash::Inputs::Udp < LogStash::Inputs::Base
   public
   def run(output_queue)
     if server?
-      loop do
-        # We don't need a new thread for each connection, just read
-        # the packets
-        s = @server_socket
-        @logger.debug("Accepted connection from #{s} on #{@host}:#{@port}")
-        # Do nothing for now for the input data
-        handle_socket(s, output_queue, "udp://server.blah.blah")
-      end # loop
-    else
-      # this is the client block
-      loop do
-        client_socket = UDPSocket.new(@host, @port)
-        @logger.debug("Opened connection to #{client_socket}")
-        handle_socket(client_socket, output_queue, "udp://client.blah.blah")
-      end # loop
+        loop do
+            begin
+                buf = nil
+		buf = @server_socket.recvfrom(60000)[0].chomp
+                e = self.to_event(buf, @source)
+                if e
+                    output_queue << e
+                end
+            rescue => e
+                @logger.warn(["Error while receving data : #{@server_socket}", $!])
+                @logger.warn(["Backtrace", e.backtrace])
+            rescue Timeout::Error
+                @logger.warn("Closing connection with #{@server_socket} after read timeout")
+            end # begin
+        end # loop do
     end
   end # def run
 end # class LogStash::Inputs::Udp
