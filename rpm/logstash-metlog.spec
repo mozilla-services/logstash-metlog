@@ -38,6 +38,10 @@ rm -rf %{buildroot}
 %attr(755,root,root) %{_logstash_dir}/bin/upload_log.py
 
 %changelog
+* Thu Jul 19 2012 Victor Ng <vng@mozilla.com>
+- release 0.8.3
+- Added a UDP input plugin that will play nice with gevent
+
 * Tue Jul 10 2012 Victor Ng <vng@mozilla.com>
 - release 0.8.2
 - Added exception handling around the sentry plugin.  Failed transport
