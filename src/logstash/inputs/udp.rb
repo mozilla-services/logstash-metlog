@@ -47,7 +47,6 @@ class LogStash::Inputs::Udp < LogStash::Inputs::Base
             begin
                 buf = nil
 		buf = @server_socket.recvfrom(60000)[0].chomp
-                @logger.info("Got buffer")
                 e = self.to_event(buf, @source)
                 if e
                     output_queue << e
