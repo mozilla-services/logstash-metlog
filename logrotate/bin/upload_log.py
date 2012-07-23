@@ -1,12 +1,12 @@
-#!/bin/python
+#!/usr/bin/python
+from ConfigParser import SafeConfigParser
+from metlog.config import client_from_dict_config
 import datetime
-import subprocess
-import shutil
 import os
+import shutil
+import subprocess
 import sys
 import time
-from metlog.config import client_from_dict_config
-from ConfigParser import SafeConfigParser
 
 
 class HDFSUploader(object):
@@ -24,7 +24,9 @@ class HDFSUploader(object):
 
         # Make a copy of the log file in case it gets rotated out from
         # under us
-        self.LOCAL_FNAME = "/opt/metlog/hdfs_logs/metrics_hdfs.log.%s"
+        self.TMP_DIR = cfg.get('metlog_metrics_hdfs', 'TMP_DIR')
+        self.LOCAL_FNAME = os.path.join(self.TMP_DIR,
+                "metrics_hdfs.log.%s")
         self.LOCAL_FNAME = self.LOCAL_FNAME % self.SDATE
 
         self.ERR_RM_HDFS = 'Failed to remove [%s] from %s'
@@ -46,7 +48,7 @@ class HDFSUploader(object):
           "rm",
           self.DST_FNAME]
         # try to clean up the file off of the metrics server
-        print ' '.join(rm_cmd)
+        self.LOGGER.info(' '.join(rm_cmd))
         rm_result = subprocess.call(rm_cmd)
         if rm_result != 0:
             self.LOGGER.error(self.ERR_RM_HDFS)
@@ -62,7 +64,14 @@ class HDFSUploader(object):
             src_file = time.strftime(self.SRC_LOGFILE)
             shutil.copy(src_file, self.LOCAL_FNAME)
         except:
-            self.LOGGER.error("Error copying JSON log file for processing")
+            self.LOGGER.exception("Error copying JSON log file for processing")
+            sys.exit(1)
+
+    def remove_log_local(self):
+        try:
+            os.unlink(self.LOCAL_FNAME)
+        except:
+            self.LOGGER.exception("Error removing temporary log file")
             sys.exit(1)
 
     def push_to_hadoop_host(self):
@@ -70,6 +79,7 @@ class HDFSUploader(object):
                    self.LOCAL_FNAME,
                   "%s@%s:%s" % (self.HADOOP_USER, self.HADOOP_HOST,
                       self.DST_FNAME)]
+        self.LOGGER.info(' '.join(scp_cmd))
         scp_result = subprocess.call(scp_cmd)
 
         if scp_result != 0:
@@ -86,6 +96,7 @@ class HDFSUploader(object):
           self.DST_FNAME,
           "/user/%s/%s" % (self.HADOOP_USER, self.DST_FNAME)]
 
+        self.LOGGER.info(' '.join(cmd))
         dfs_result = subprocess.call(cmd)
 
         if dfs_result != 0:
@@ -112,6 +123,7 @@ def main():
     uploader.copy_log_local()
     uploader.push_to_hadoop_host()
     uploader.dfs_put()
+    uploader.remove_log_local()
 
 if __name__ == '__main__':
     main()
