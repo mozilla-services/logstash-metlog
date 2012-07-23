@@ -4,6 +4,7 @@ import subprocess
 import shutil
 import os
 import sys
+import time
 from metlog.config import client_from_dict_config
 from ConfigParser import SafeConfigParser
 
@@ -58,7 +59,8 @@ class HDFSUploader(object):
 
     def copy_log_local(self):
         try:
-            shutil.copy(self.SRC_LOGFILE, self.LOCAL_FNAME)
+            src_file = time.strftime(self.SRC_LOGFILE)
+            shutil.copy(src_file, self.LOCAL_FNAME)
         except:
             self.LOGGER.error("Error copying JSON log file for processing")
             sys.exit(1)
