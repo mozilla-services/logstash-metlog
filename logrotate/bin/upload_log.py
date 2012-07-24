@@ -13,7 +13,7 @@ class HDFSUploader(object):
     def __init__(self, cfg):
         self._cfg = cfg
 
-        self.SDATE = datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        self.SDATE = self.compute_sdate()
 
         self.HADOOP_USER = cfg.get('metlog_metrics_hdfs', 'HADOOP_USER')
         self.HADOOP_HOST = cfg.get('metlog_metrics_hdfs', 'HADOOP_HOST')
@@ -42,6 +42,9 @@ class HDFSUploader(object):
 
         self.LOGGER = client_from_dict_config(dict(cfg.items('metlog')))
 
+    def compute_sdate(self):
+        return datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+
     def remove_file_from_hadoop(self):
         rm_cmd = ["ssh",
           "%s@%s" % (self.HADOOP_USER, self.HADOOP_HOST),
@@ -49,7 +52,8 @@ class HDFSUploader(object):
           self.DST_FNAME]
         # try to clean up the file off of the metrics server
         self.LOGGER.info(' '.join(rm_cmd))
-        rm_result = subprocess.call(rm_cmd)
+        rm_result = self.call_subprocess(rm_cmd)
+
         if rm_result != 0:
             self.LOGGER.error(self.ERR_RM_HDFS)
 
@@ -80,11 +84,14 @@ class HDFSUploader(object):
                   "%s@%s:%s" % (self.HADOOP_USER, self.HADOOP_HOST,
                       self.DST_FNAME)]
         self.LOGGER.info(' '.join(scp_cmd))
-        scp_result = subprocess.call(scp_cmd)
+        scp_result = self.call_subprocess(scp_cmd)
 
         if scp_result != 0:
             self.LOGGER.error(self.ERR_XFER_HADOOP)
             sys.exit(1)
+
+    def call_subprocess(self, *args, **kwargs):
+        return subprocess.call(*args, **kwargs)
 
     def dfs_put(self):
         # Just tell hadoop to import the file
@@ -97,7 +104,7 @@ class HDFSUploader(object):
           "/user/%s/%s" % (self.HADOOP_USER, self.DST_FNAME)]
 
         self.LOGGER.info(' '.join(cmd))
-        dfs_result = subprocess.call(cmd)
+        dfs_result = self.call_subprocess(cmd)
 
         if dfs_result != 0:
             self.remove_file_from_hadoop()

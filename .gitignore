@@ -1,3 +1,5 @@
 logstash-custom.jar
 .*sw?
+*pyc
+*pyo
 build
