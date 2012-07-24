@@ -1,12 +1,6 @@
-/var/log/aitc/application.log /var/log/aitc/metrics_hdfs.log {
-    nocreate  # Never create a new log file or else we'll lose the
-              # file handle
-
-    # We're going to send the data up every day instead of
-    # at 64M segments
-    #
-    # size=64M  
-
+## Managed by puppet
+/var/log/aitc/metrics_hdfs.log {
+    nocreate  
     notifempty
     daily
     compress
@@ -15,7 +9,18 @@
     dateformat=%Y-%m-%d
     rotate 7
     postrotate
-        # Ship logs to HDFS
         /opt/metlog/bin/upload_log.py --config /etc/metlog/sync_metrics_hdfs.ini
     endscript
+}
+
+/var/log/aitc/application.log {
+    nocreate  
+    notifempty
+    daily
+    compress
+    copytruncate
+    dateext
+    dateformat=%Y-%m-%d
+    rotate 7
+
 }
