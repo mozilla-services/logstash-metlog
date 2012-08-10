@@ -1,7 +1,7 @@
 %define _logstash_dir /opt/logstash
 
 Name:          logstash-metlog
-Version:       0.8.4
+Version:       0.8.5
 Release:       1
 Summary:       Logstash plugins for the MetLog framework
 Packager:      Pete Fritchman <petef@mozilla.com>
@@ -38,6 +38,10 @@ rm -rf %{buildroot}
 %attr(755,root,root) %{_logstash_dir}/bin/upload_log.py
 
 %changelog
+* Fri Aug 10 2012 Victor Ng <vng@mozilla.com>
+- release 0.8.5
+- fixed a bug with namespace handling where a double '.' would show up
+
 * Tue Jul 24 2012 Victor Ng <vng@mozilla.com>
 - release 0.8.4
 - JSON log push now has the ability to handle date formatting by logrotate 
