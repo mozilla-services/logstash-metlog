@@ -48,7 +48,13 @@ class LogStash::Outputs::SimpleStatsd
     end
 
     def send(namespace, stat, delta, type, sample_rate)
-        prefix = "#{namespace}." unless namespace == ''
+        if namespace == nil
+            prefix = ''
+        elsif namespace == ''
+            prefix = ''
+        else
+            prefix = "#{namespace}."
+        end
         stat = stat.to_s.gsub('::', '.').gsub(RESERVED_CHARS_REGEX, '_')
         send_to_socket("#{prefix}#{stat}:#{delta}|#{type}#{'|@' << sample_rate.to_s if sample_rate < 1}")
     end
