@@ -25,7 +25,7 @@ class LogStash::Outputs::MetlogStatsd < LogStash::Outputs::Base
   public
   def initialize(params)
     super
-    @client = LogStash::Outputs::SimpleStatsd.new(@host, @port)
+    @client = LogStash::Outputs::SimpleStatsd.new(@logger, @host, @port)
   end 
 
   public 

@@ -20,8 +20,8 @@ class LogStash::Outputs::SimpleStatsd
 
     # @param [String] host your statsd host
     # @param [Integer] port your statsd port
-    def initialize(host, port=8125)
-        @host, @port = host, port
+    def initialize(logger, host, port=8125)
+        @logger, @host, @port = logger, host, port
     end
 
     # Sends an arbitrary count for the given stat to the statsd server.
@@ -48,15 +48,11 @@ class LogStash::Outputs::SimpleStatsd
     end
 
     def send(namespace, stat, delta, type, sample_rate)
-        if namespace == nil
-            prefix = ''
-        elsif namespace == ''
-            prefix = ''
-        else
-            prefix = "#{namespace}."
-        end
+        prefix = "."
         stat = stat.to_s.gsub('::', '.').gsub(RESERVED_CHARS_REGEX, '_')
-        send_to_socket("#{prefix}#{stat}:#{delta}|#{type}#{'|@' << sample_rate.to_s if sample_rate < 1}")
+	msg = "#{prefix}#{stat}:#{delta}|#{type}#{'|@' << sample_rate.to_s if sample_rate < 1}"
+        @logger.info("sending statsd : [#{msg}]")
+        send_to_socket(msg)
     end
 
     def send_to_socket(message)
