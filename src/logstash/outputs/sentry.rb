@@ -8,7 +8,8 @@ require "uri"
 require 'time'
 require 'logstash/util/hmac/hmac-sha1'
 
-class SentryServer
+
+class BaseClient
     public 
     def initialize(dsn, err_queue)
         @dsn_uri, @server_uri = compute_server_uri(dsn)
@@ -74,18 +75,7 @@ class SentryServer
 
     private
     def send_message(message, headers, server_uri)
-        req = Net::HTTP::Post.new(server_uri.path, initheader = headers)
-        req.body = message
-        begin
-            response = Net::HTTP.new(server_uri.host, server_uri.port).start {|http| 
-                http.request(req)
-            }
-            return response.code
-        rescue Errno::ECONNREFUSED => e
-            return 503 # Service Unavailable
-        else
-            return 500 # Something weird happend
-        end
+        raise NotImplementedError, "Subclasses must implement this"
     end
 
     # Compute the headers for a given message and the DSN URI
@@ -108,6 +98,40 @@ class SentryServer
     end
 end
 
+class HTTPClient < BaseClient
+    def send_message(message, headers, server_uri)
+        req = Net::HTTP::Post.new(server_uri.path, initheader = headers)
+        req.body = message
+        begin
+            response = Net::HTTP.new(server_uri.host, server_uri.port).start {|http| 
+                http.request(req)
+            }
+            return response.code
+        rescue Errno::ECONNREFUSED => e
+            return 503 # Service Unavailable
+        else
+            return 500 # Something weird happend
+        end
+    end
+end
+
+class UDPClient < BaseClient
+    private
+    def send_message(message, headers, server_uri)
+        auth_header = headers['X-Sentry-Auth']
+
+        if auth_header is nil
+            # silently ignore attempts to send messages without an auth header
+            return
+        end
+
+        udp_socket = UDPSocket.new
+        udp_socket.send(auth_header + '\n\n' + data,
+                        (server_uri.host, int(server_uri.port)))
+    end
+
+end
+
 
 def main()
     encoded_message = "eJzFVtuO2joU/RUrLzAq5EbCAGornd6eOlKlOe1D21HkODsZd0Ic2Q4lrfj3s22HKTClU+nckBKynbWva9nw3dN8DZlqodHeijRdXU+Ip9CSvc8bDbKkDJT/esug1Vw0CPru6b4FfPA+ghSv+IYrfPFaSiE9dN7QurNvjXsFkhQDgghJ1qLoakHynnxDXwO3KxYP+xzK2+EL1tWt5KYqT4PS2Rp0LSr/HpUxWtexZ8uVG5BZQ9c2zgfOtJBqekXZCyHupn9w6dcC0QZbwwZqRCUhGvjc6IwXxmuWpIsoipMcCppEkNNFNGdhsoDiEpIULo0zuwV2p7q1wTNWJAks6TJhUQnJIg1n+WxRFMt0kS7ZMjV42GpJzcR2942qvam4hh8Tb6X4Asw0G6FlOFGarluTKA6jeBom01n4Z7RcpfEqDP3LZTqPZx+9n3J1rSm7w8QMLFmlxLmYtJ/wuWvYwKIbalt3FW9UxkRT8srEo7nKWqpvDSR4j6NVwcYOtKmCAjaBo2EqKc5uMDJnmIAqOOSq7T3bG5j4GqdhqvDI8JGgO9mQE0LH/YRsJySJL4yvuQwWW1x5N1Zd0o7QY2WVaRvR+9wYyCeX9MZZOJYCNcFqqhR5RoaC3KryX0HeVS9piwXAtV373BxFGQbjOhtCIkcbjtBnh1379j7AV26Mg+W8nA6ONYs1P91Tcdo/oZqE2yhMYA6zOHz+0D/6lX906B8lzv+LcpQ/dRokI7MwIqUUazIKrnulYR285bmksg/eGL18FfJOBe96fSsav9yvBB9weGaDBrE/D2qeB61FGMuEDLKMN1xnGTLPRjY1q7k7WjC548Ct+FfWemkNInKj/oPS41kUHvhnptTMKGiv1KMRnAHdx2PzeR4tnnu7o/PmQKkmU8lr2B8hZ6UslH6gZUfAai9V8xl6tNoYj5TAIxaDVMMhNbqwUh7iZDVvbNK98wmh43RCUrsZDLARCF3OsJPj3Xwqkf9jJ1PyhOR4MRKQMSVTkh/t4QLKB73hTu8vTnZ2j3fs2dsO339r9/zzlD84ks7x+Dvn2w9Kw0cojf87Sp168dQ8s6/Gw9k7ISMXa/QIz/GYTkg+IeyUajpQzMwvcowPuVn49zh7RIKPMHlG3/ccLi53N7Z2UIpWP/+HtCK/8bdo9xdIJx+H"
@@ -119,7 +143,7 @@ def main()
 
     err_queue = Queue.new
 
-    sender = SentryServer.new(dsn, err_queue)
+    sender = HTTPClient.new(dsn, err_queue)
     response_code = sender.send(encoded_message, timestamp)
     puts "Got sentry status: [#{response_code}]"
 end

@@ -46,7 +46,8 @@ class LogStash::Outputs::MetlogSentry < LogStash::Outputs::Base
             @queue  = Queue.new
             @err_queue = Queue.new
 
-            @sentry = SentryServer.new(dsn, @err_queue)
+            # TODO: change this to use a factory
+            @sentry = HTTPClient.new(dsn, @err_queue)
         end
 
         public
