@@ -13,19 +13,16 @@ require "logstash/outputs/sentry"
 
 class LogStash::Outputs::MetlogSentry < LogStash::Outputs::Base
 
-    config_name "metlog_sentry"
+    config_name "metlog_sentry_dsn"
     plugin_status "beta"
 
     # Only handle events with all of these tags
     # Optional.
     config :tags, :validate => :array, :default => []
 
-    # The DSN of the sentry server
-    config :dsn, :validate => :string, :required => true
-
     public
     def register
-        @sentry_holder = SentryHolder.new(@dsn, @logger)
+        @sentry_holder = SentryHolder.new(@logger)
         @push_thread = Thread.new(@sentry_holder) do |client|
             client.run
         end
@@ -40,31 +37,34 @@ class LogStash::Outputs::MetlogSentry < LogStash::Outputs::Base
 
     class SentryHolder
         public
-        def initialize(dsn, logger)
-            @dsn = dsn
+        def initialize(logger)
             @logger = logger
             @queue  = Queue.new
             @err_queue = Queue.new
-
-            # TODO: change this to use a factory
-            @sentry = HTTPClient.new(dsn, @err_queue)
         end
 
         public
         def run
             while true
                 event = @queue.pop
-                @sentry.send(event)
+
+                dsn = event['fields']['dsn']
+                if dsn.start_with?('http://')
+                    sentry = HTTPClient.new(dsn, @err_queue)
+                elsif dsn.start_with?('udp://')
+                    sentry = UDPClient.new()
+                end
+                sentry.send(event)
 
                 begin
                     err_event = @err_queue.pop(non_block=true)
                     @logger.warn("Sentry appears to be down.", 
-				    :sentry_event => err_event['payload'],
-				    :sentry_timestamp => event['fields']['epoch_timestamp']
-				)
+                    :sentry_event => err_event['payload'],
+                    :sentry_timestamp => event['fields']['epoch_timestamp']
+                )
                 rescue ThreadError => e
                     # Do nothing - we don't really care if there are no error
-                    # events ot process
+                    # events to process
                 end
             end
         end # def run
