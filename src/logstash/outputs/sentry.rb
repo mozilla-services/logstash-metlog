@@ -2,6 +2,8 @@
 # This module provides basic access to a Sentry server using a DSN to
 # locate the server
 #
+# TODO: these don't really need to be instances.  Just use static
+# methods
 
 require "net/http"
 require "uri"
@@ -116,20 +118,44 @@ class HTTPClient < BaseClient
 end
 
 class UDPClient < BaseClient
+    public 
+    def initialize()
+    end
+
+    # Send an encoded message to the sentry server
+    # with an optional timestamp
+    public
+    def send(event)
+        message = event['payload']
+        timestamp = event['fields']['epoch_timestamp']
+        dsn = event['fields']['dsn']
+
+        dsn_uri, server_uri = compute_server_uri(dsn)
+
+        headers = compute_headers(message, dsn_uri, timestamp)
+
+        send_message(message, headers, server_uri).to_i
+    end
+
+    private
+    def compute_server_uri(dsn)
+        uri = URI.parse(dsn)
+        return uri, uri
+    end
+
     private
     def send_message(message, headers, server_uri)
         auth_header = headers['X-Sentry-Auth']
 
-        if auth_header is nil
-            # silently ignore attempts to send messages without an auth header
+        if auth_header == nil
+            # TODO: we should really do something with the error queue
+            # instead of just silently eating errors
             return
         end
 
         udp_socket = UDPSocket.new
-        udp_socket.send(auth_header + '\n\n' + data,
-                        (server_uri.host, int(server_uri.port)))
+        udp_socket.send("#{auth_header}\n\n#{message}", 0, server_uri.host, server_uri.port)
     end
-
 end
 
 
@@ -144,6 +170,29 @@ def main()
     err_queue = Queue.new
 
     sender = HTTPClient.new(dsn, err_queue)
-    response_code = sender.send(encoded_message, timestamp)
+    response_code = sender.send({"payload" => encoded_message, 
+                                 "fields" => {"epoch_timestamp" => timestamp}})
     puts "Got sentry status: [#{response_code}]"
 end
+
+def udp_main()
+    # Raven encodes the project ID into the base64 blob as well as
+    # the DSN. 
+    # The following blob encodes a project ID of 2
+    encoded_message = """eJztV1tv2zYU/iuEXpwMta7WzcuCdVse8rB2aLICa1MIFEXZXCRSJSkvXpH/vkNSTpykxdZhXfJQBHCoo3Pndz6KH7xBit8p0d4SebH3DHmKci23PuOayhYTqvyTK0IHzQQHnQ+e3g7UKL+hUvzENkzBixMphTTGG9yN9q0xX1GJmkkDCYl60YydQPUW/Qm2Rt1KrD7dxVDeNbwgYzdIZpOqqh4zXlX+kdM+dknKDZUVx721fs2IFlLNf8bkByEu58+Z9DtBcGd0NV4pUOJj18ET3UB9FWts0DBLCU0LQkm2oIu0wEXaJCTN87pJ27g21mRNyaUae9ufrEnLYpGEWVa2WUFpjos4KaM4xwuSN5nRp1daYtOo65v61O5RMU1vM9Gsp5UaIJ27MqVxP9hwYRTPw3IeZ+dRsUySZRy++fgOnWlMLiEuoXaLWgl9MVHfwnrkZNo7b7+DuFbVgPXaytmw1WvB54wPo55n86iFtqRQEU2bY7ev0lbhVY2xeOsFv8IWqGBjG89XQUM3QSdWkLtaz3uqYR0oSW5kgRg1+Fbeu2dmS01U43dNO1vqOYAKmYeDQ9QCVGxtGBLfOPEzgx/7XtQGrU7LCBCuwTVyYt+z3uuRddpgZq9oNNuTz9CBXUPBh7a+ikVGt5WiRxIDRBDrByE1+sa8fT86KB6d/mL75BMhqY9HbSDWwXww/Xx6mBJBWKPwKgrrrMVlFE4xMuMEtm55wRGKUIDCC+6AbyXEJ3jQo6Q3A3dw6AxTY0jQd+jHjsHmH1x4YzMsg4AmBCdtTWhd5wucU5zEOS2LpG2LOFsUyTKMkixty7zNabKo87xoSB0WUZpjUuZZXH9vp2QtlF6WYRgFDlpBfOFNkRcPIpu/Lx/9gttI7hf+f+vSSZ5EOlNv4l0y6AsnYMJ1AlvOOtoNNDKSW5yVizIpHM5grsklXlGL/x3tXf0XEF5RoE7HFdYZjB5vEIz7WjTonMqecdyd3s7uGUxo5+9ZIdGimxRg2kCVN76eLP29sVfW9FM+H+ZIozQ8nubssaalagRxpGN62WPNTD+3iEiKNW3QxESGuqYe3CE6yjcMWtKbE2Gfx9RnEZnjZ7P+BJv9X4h9GmP66FlM3PUIePzMk8aczK9PXp2dvnxhvz780M8cDs1nlsPg7mPMyW+O8duFWt+B6h22UWvciD+4miGLzNn9bwgf4K9H3MEcqODs5MX5q9+CjtWBo47YzwLzATWf2E0Fk/PAOA92zv1hS2Z2FIjNxOLfr7Givmv/fepok7Qsdyc0e8gdj4Zcl4EtgnRYKTR7UMtsl/aTyHpC+in/ykBfGejfMlAl1rvr0stR2+XtTeo+BbUMyGK6A/79JaZjnHIBuvH1O+Ozg7tgB4+L0ASgSgGrfPRmu0T/4Dp7/RchnrHr"""
+
+    dsn = "udp://e3ca3fbcebb74a7ea327e983ff826483:01365f97f7e34b778dcb08157ac9762b@localhost:9001/sentry/2"
+
+    # Get the current timestamp
+    timestamp = Time.now.to_f
+
+    err_queue = Queue.new
+
+    sender = UDPClient.new(err_queue)
+    sender.send({"payload" => encoded_message, 
+                 "fields" => {"epoch_timestamp" => "some_timestamp",
+                              "dsn" => dsn }})
+    puts "Sent!"
+end
+
+udp_main()
