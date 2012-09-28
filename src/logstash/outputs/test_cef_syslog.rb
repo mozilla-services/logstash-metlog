@@ -10,9 +10,7 @@ class MiscExampleTest < Test::Unit::TestCase
     end
 
     def teardown
-        if @sender.opened?
-            @sender.close
-        end
+        @sender.close
     end
 
     def test_mocking_a_class_method
@@ -34,19 +32,29 @@ class MiscExampleTest < Test::Unit::TestCase
         # the message
         Syslog.expects(:log).with(0, 'bar')
         @sender.log_msg('bar', config)
-
-        #sender.log_msg('foo', config)
-        # TODO: assert facility defaults to loglocal4
-        # TODO: assert facility uses the facility map
-        # TODO: assert identity is passed through
-        # TODO: assert options are OR'd together
-        # assert message was sent
-
-        #sender.log_msg('bar', config)
-        # assert message was sent
-
-        #sender.log_msg('batz', config)
-        # assert message was sent
     end
 
+    def test_mutating_config
+        config = {'syslog_options' => 'NOWAIT,PID',
+            'syslog_facility' => nil,
+            'syslog_ident' => 'some_identity',
+            'syslog_priority' => 'ALERT',}
+
+
+        # LOGLOCAL4 facility == 160
+        # NOWAIT|PID == 17
+        # ALERT == priority 1
+        Syslog.expects(:open).with('some_identity', 17, 160)
+        Syslog.expects(:log).with(1, 'foo')
+        @sender.log_msg('foo', config)
+
+        # New config for identity, options and facility
+        config = {'syslog_options' => 'NDELAY',
+            'syslog_facility' => 'MAIL',
+            'syslog_ident' => 'another_ident',
+            'syslog_priority' => 'NOTICE',}
+        Syslog.expects(:open).with('another_ident', 8, 16)
+        Syslog.expects(:log).with(5, 'foo')
+        @sender.log_msg('foo', config)
+    end
 end

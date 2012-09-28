@@ -6,7 +6,7 @@ require 'thread'
 class SyslogSender
 
     @@semaphore = Mutex.new
-    @@log_opened = false
+    @@log_opened = nil
 
     @@SYSLOG_OPTIONS = {'PID' => Syslog::LOG_PID,
                        'CONS' => Syslog::LOG_CONS,
@@ -45,18 +45,12 @@ class SyslogSender
     public
     def log_msg(msg, config)
         @@semaphore.synchronize {
-            # Syslog is not threadsafe at all.  The syslog library has
-            # global variables in the C library so don't try to
-            # change the ident, logopt or facility after it has been
-            # set. Alternately, synchronize teh entire log_msg method
-            # and explicitly set all three everytime we send a
-            # message.
-            if !@@log_opened
-                ident = config['syslog_ident']
-                logopt = _str2logopt(config['syslog_options'])
-                facility = _str2facility(config['syslog_facility'])
+            ident = config['syslog_ident']
+            logopt = _str2logopt(config['syslog_options'])
+            facility = _str2facility(config['syslog_facility'])
+            if @@log_opened != [ident, logopt, facility]
+                @@log_opened = [ident, logopt, facility]
                 Syslog.open(ident, logopt, facility)
-                @@log_opened = true
             end
         }
         priority = _str2priority(config['syslog_priority'])
@@ -87,10 +81,12 @@ class SyslogSender
         end
     end
 
-    def opened?
-        return Syslog.opened?
-    end
     def close
-        Syslog.close()
+        @@semaphore.synchronize {
+            if Syslog.opened?
+                Syslog.close()
+            end
+            @@log_opened = nil
+        }
     end
 end
