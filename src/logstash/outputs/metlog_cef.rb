@@ -31,7 +31,7 @@ class LogStash::Outputs::MetlogCef < LogStash::Outputs::Base
     return unless output?(event)
 
     begin
-        cef_meta = event.fields['fields']['cef']
+        cef_meta = event.fields['fields']['cef_meta']
         config = {'syslog_options' => cef_meta['syslog_options'],
             'syslog_facility' => cef_meta['syslog_facility'],
             'syslog_ident' => cef_meta['syslog_ident'],
