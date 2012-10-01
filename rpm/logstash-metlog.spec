@@ -1,7 +1,7 @@
 %define _logstash_dir /opt/logstash
 
 Name:          logstash-metlog
-Version:       0.8.5
+Version:       0.8.6
 Release:       1
 Summary:       Logstash plugins for the MetLog framework
 Packager:      Pete Fritchman <petef@mozilla.com>
@@ -38,6 +38,11 @@ rm -rf %{buildroot}
 %attr(755,root,root) %{_logstash_dir}/bin/upload_log.py
 
 %changelog
+* Mon Oct 1 2012 Victor Ng <vng@mozilla.com>
+- release 0.8.6
+- added support for CEF over syslog
+- added support for Sentry messages over UDP with a special metlog_sentry_dsn output plugin
+
 * Fri Aug 10 2012 Victor Ng <vng@mozilla.com>
 - release 0.8.5
 - fixed a bug with namespace handling where a double '.' would show up
