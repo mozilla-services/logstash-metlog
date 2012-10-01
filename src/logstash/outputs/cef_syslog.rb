@@ -59,9 +59,11 @@ class LogStash::Outputs::SyslogSender
 
     def _str2logopt(value)
         res = 0
-        value.split(',').each{|opt|
-            res = res | @@SYSLOG_OPTIONS[opt.strip]
-        }
+        if value != nil
+            value.split(',').each{|opt|
+                res = res | @@SYSLOG_OPTIONS[opt.strip]
+            }
+        end
         return res
     end
 
