@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from ConfigParser import SafeConfigParser
 from metlog.config import client_from_dict_config
+import argparse
 import datetime
 import os
 import shutil
@@ -9,10 +10,27 @@ import sys
 import time
 
 
-class HDFSUploader(object):
-    def __init__(self, cfg):
-        self._cfg = cfg
+class readable_dir(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        prospective_dir = values
+        if not os.path.isdir(prospective_dir):
+            msg = "readable_dir:{0} is not a valid path"
+            msg = msg.format(prospective_dir)
+            raise argparse.ArgumentTypeError(msg)
+        if os.access(prospective_dir, os.R_OK):
+            setattr(namespace, self.dest, os.path.abspath(prospective_dir))
+        else:
+            msg = "readable_dir:{0} is not a readable dir"
+            msg = msg.format(prospective_dir)
+            raise argparse.ArgumentTypeError(msg)
 
+
+class HDFSUploader(object):
+    def __init__(self, cfg, ssh_keys):
+        self._cfg = cfg
+        self._ssh_keypath = ssh_keys
+
+        print "SSH Keys are in : %s" % self._ssh_keypath
         self.SDATE = self.compute_sdate()
 
         self.HADOOP_USER = cfg.get('metlog_metrics_hdfs', 'HADOOP_USER')
@@ -20,18 +38,18 @@ class HDFSUploader(object):
         self.SRC_LOGFILE = cfg.get('metlog_metrics_hdfs', 'SRC_LOGFILE')
 
         self.DST_FNAME = "%s.%s" % (cfg.get('metlog_metrics_hdfs',
-            'DST_FNAME'), self.SDATE)
+                                            'DST_FNAME'), self.SDATE)
 
         # Make a copy of the log file in case it gets rotated out from
         # under us
         self.TMP_DIR = cfg.get('metlog_metrics_hdfs', 'TMP_DIR')
         self.LOCAL_FNAME = os.path.join(self.TMP_DIR,
-                "metrics_hdfs.log.%s")
+                                        "metrics_hdfs.log.%s")
         self.LOCAL_FNAME = self.LOCAL_FNAME % self.SDATE
 
         self.ERR_RM_HDFS = 'Failed to remove [%s] from %s'
-        self.ERR_RM_HDFS = self.ERR_RM_HDFS % \
-                            (self.DST_FNAME, self.HADOOP_HOST)
+        self.ERR_RM_HDFS = self.ERR_RM_HDFS % (self.DST_FNAME,
+                                               self.HADOOP_HOST)
 
         self.ERR_XFER_HADOOP = "Transport of [%s] to HDFS failed"
         self.ERR_XFER_HADOOP = self.ERR_XFER_HADOOP % self.DST_FNAME
@@ -46,10 +64,15 @@ class HDFSUploader(object):
         return datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')
 
     def remove_file_from_hadoop(self):
+        priv_key = os.path.join(self._ssh_keypath,
+                                "id_private_%s" % self.HADOOP_USER)
+        ssh_target = "%s@%s" % (self.HADOOP_USER, self.HADOOP_HOST)
         rm_cmd = ["ssh",
-          "%s@%s" % (self.HADOOP_USER, self.HADOOP_HOST),
-          "rm",
-          self.DST_FNAME]
+                  "-i",
+                  priv_key,
+                  ssh_target,
+                  "rm",
+                  self.DST_FNAME]
         # try to clean up the file off of the metrics server
         self.LOGGER.info(' '.join(rm_cmd))
         rm_result = self.call_subprocess(rm_cmd)
@@ -71,18 +94,19 @@ class HDFSUploader(object):
             self.LOGGER.exception("Error copying JSON log file for processing")
             sys.exit(1)
 
-    def remove_log_local(self):
-        try:
-            os.unlink(self.LOCAL_FNAME)
-        except:
-            self.LOGGER.exception("Error removing temporary log file")
-            sys.exit(1)
-
     def push_to_hadoop_host(self):
+        priv_key = os.path.join(self._ssh_keypath,
+                                "id_private_%s" % self.HADOOP_USER)
+
+        scp_remote = "%s@%s:%s" % (self.HADOOP_USER,
+                                   self.HADOOP_HOST,
+                                   self.DST_FNAME)
+
         scp_cmd = ["scp",
+                   "-i",
+                   priv_key,
                    self.LOCAL_FNAME,
-                  "%s@%s:%s" % (self.HADOOP_USER, self.HADOOP_HOST,
-                      self.DST_FNAME)]
+                   scp_remote]
         self.LOGGER.info(' '.join(scp_cmd))
         scp_result = self.call_subprocess(scp_cmd)
 
@@ -95,13 +119,18 @@ class HDFSUploader(object):
 
     def dfs_put(self):
         # Just tell hadoop to import the file
+        priv_key = os.path.join(self._ssh_keypath,
+                                "id_private_%s" % self.HADOOP_USER)
+        ssh_target = "%s@%s" % (self.HADOOP_USER, self.HADOOP_HOST)
         cmd = ["ssh",
-          "%s@%s" % (self.HADOOP_USER, self.HADOOP_HOST),
-          "hadoop",
-          "dfs",
-          "-put",
-          self.DST_FNAME,
-          "/user/%s/%s" % (self.HADOOP_USER, self.DST_FNAME)]
+               "-i",
+               priv_key,
+               ssh_target,
+               "hadoop",
+               "dfs",
+               "-put",
+               self.DST_FNAME,
+               "/user/%s/%s" % (self.HADOOP_USER, self.DST_FNAME)]
 
         self.LOGGER.info(' '.join(cmd))
         dfs_result = self.call_subprocess(cmd)
@@ -118,19 +147,23 @@ class HDFSUploader(object):
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Upload JSON logs to HDFS")
-    parser.add_argument('--config', type=argparse.FileType('r'),
-            required=True)
+    parser.add_argument('--config',
+                        type=argparse.FileType('r'),
+                        required=True)
+
+    parser.add_argument('--ssh-keys',
+                        dest='ssh_keys',
+                        action=readable_dir, required=True)
 
     parsed_args = parser.parse_args()
 
     cfg = SafeConfigParser()
     cfg.readfp(parsed_args.config)
 
-    uploader = HDFSUploader(cfg)
+    uploader = HDFSUploader(cfg, parsed_args.ssh_keys)
     uploader.copy_log_local()
     uploader.push_to_hadoop_host()
     uploader.dfs_put()
-    uploader.remove_log_local()
 
 if __name__ == '__main__':
     main()
