@@ -38,7 +38,7 @@ rm -rf %{buildroot}
 %attr(755,root,root) %{_logstash_dir}/bin/upload_log.py
 
 %changelog
-* Wed Oct 21 2012 Victor Ng <vng@mozilla.com>
+* Wed Nov 21 2012 Victor Ng <vng@mozilla.com>
 - release 0.8.7
 - modified upload_log.py to support using SSH identity files not
   associated with the user running the python script.
