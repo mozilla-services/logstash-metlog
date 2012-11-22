@@ -67,7 +67,7 @@ class HDFSUploader(object):
         priv_key = os.path.join(self._ssh_keypath,
                                 "id_private_%s" % self.HADOOP_USER)
         ssh_target = "%s@%s" % (self.HADOOP_USER, self.HADOOP_HOST)
-        rm_cmd = ["ssh",
+        rm_cmd = ["/usr/bin/ssh",
                   "-i",
                   priv_key,
                   ssh_target,
@@ -102,7 +102,7 @@ class HDFSUploader(object):
                                    self.HADOOP_HOST,
                                    self.DST_FNAME)
 
-        scp_cmd = ["scp",
+        scp_cmd = ["/usr/bin/scp",
                    "-i",
                    priv_key,
                    self.LOCAL_FNAME,
@@ -122,7 +122,7 @@ class HDFSUploader(object):
         priv_key = os.path.join(self._ssh_keypath,
                                 "id_private_%s" % self.HADOOP_USER)
         ssh_target = "%s@%s" % (self.HADOOP_USER, self.HADOOP_HOST)
-        cmd = ["ssh",
+        cmd = ["/usr/bin/ssh",
                "-i",
                priv_key,
                ssh_target,
