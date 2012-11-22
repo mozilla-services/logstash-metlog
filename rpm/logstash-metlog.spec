@@ -1,7 +1,7 @@
 %define _logstash_dir /opt/logstash
 
 Name:          logstash-metlog
-Version:       0.8.7
+Version:       0.8.8
 Release:       1
 Summary:       Logstash plugins for the MetLog framework
 Packager:      Pete Fritchman <petef@mozilla.com>
@@ -38,6 +38,11 @@ rm -rf %{buildroot}
 %attr(755,root,root) %{_logstash_dir}/bin/upload_log.py
 
 %changelog
+* Thu Nov 22 2012 Victor Ng <vng@mozilla.com>
+- release 0.8.8
+- use fully qualified paths for scp and ssh
+- fixed some bad dates in the RPM changelog
+
 * Wed Nov 21 2012 Victor Ng <vng@mozilla.com>
 - release 0.8.7
 - modified upload_log.py to support using SSH identity files not
