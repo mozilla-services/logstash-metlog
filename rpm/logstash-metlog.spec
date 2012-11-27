@@ -2,16 +2,16 @@
 
 Name:          logstash-metlog
 Version:       0.8.8
-Release:       1
+Release:       1svc
 Summary:       Logstash plugins for the MetLog framework
-Packager:      Pete Fritchman <petef@mozilla.com>
+Packager:      Mozilla Services Operations <services-ops@mozilla.com>
 Group:         Development/Libraries
 License:       MPL 2.0
 URL:           https://github.com/mozilla-services/logstash-metlog
 Source0:       %{name}.tar.gz
 BuildRoot:     %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 AutoReqProv:   no
-Requires:      logstash = 1.1.0, python26-argparse
+Requires:      logstash = 1.1.5-1svc, python26-argparse
 
 %description
 Logstash plugins to enable messages coming from the MetLog framework
@@ -61,7 +61,7 @@ rm -rf %{buildroot}
 
 * Tue Jul 24 2012 Victor Ng <vng@mozilla.com>
 - release 0.8.4
-- JSON log push now has the ability to handle date formatting by logrotate 
+- JSON log push now has the ability to handle date formatting by logrotate
 
 * Thu Jul 19 2012 Victor Ng <vng@mozilla.com>
 - release 0.8.3
@@ -79,7 +79,7 @@ rm -rf %{buildroot}
 
 * Tue Jun 26 2012 Victor Ng <vng@mozilla.com>
 - release 0.8
-- No code changes.  Just added a requirement on 1.2.0 > logstash >= 1.1.0 
+- No code changes.  Just added a requirement on 1.2.0 > logstash >= 1.1.0
 
 * Fri Jun 22 2012 Victor Ng <vng@mozilla.com>
 - release 0.7
