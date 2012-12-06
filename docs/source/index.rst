@@ -12,6 +12,7 @@ Contents:
     :glob:
 
     config
+    hdfs
 
 
 Indices and tables
