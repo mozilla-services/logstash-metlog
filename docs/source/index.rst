@@ -6,6 +6,8 @@
 Welcome to logstash-metlog extensions's documentation!
 ======================================================
 
+.. include:: ../../README.rst
+
 Contents:
 
 .. toctree::
