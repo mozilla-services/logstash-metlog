@@ -15,6 +15,7 @@ Contents:
 
     config
     hdfs
+    deprecated
 
 
 Indices and tables
