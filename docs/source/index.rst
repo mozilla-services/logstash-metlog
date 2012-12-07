@@ -6,12 +6,16 @@
 Welcome to logstash-metlog extensions's documentation!
 ======================================================
 
+.. include:: ../../README.rst
+
 Contents:
 
 .. toctree::
     :glob:
 
     config
+    hdfs
+    deprecated
 
 
 Indices and tables

@@ -6,40 +6,53 @@ Metlog provides some plugins to ease integration with logstash.
 
 Input plugins provided:
 
-    * logstash.inputs.zeromq_hs
+    * logstash.inputs.udp
+    * logstash.inputs.zeromq_hs (deprecated)
 
 Filter plugins provided:
 
     * logstash.filters.tagger
+    * logstash.filters.catchall
 
 Output plugins provided:
 
+    * logstash.outputs.metlog_cef
     * logstash.outputs.metlog_file
+    * logstash.outputs.metlog_sentry_dsn
     * logstash.outputs.metlog_statsd
+    * logstash.outputs.metlog_sentry (deprecated)
 
 Input plugins
 =============
 
-zeromq_hs configuration
------------------------
+udp
+---
 
-The zeromq_hs input plugin is provides a simple handshake service
-which exposes a ZMQ::REP socket that is used to synchronize the
-PUB/SUB 0mq input plugin.  This plugin is only required if Metlog has
-declared a sender type of ZmqHandshakePubSender.
+The udp input plugin provides a basic UDP listener service for
+logstash.
 
-Using the zeromq_hs plugin requires setting a 0mq address so to bind a
-socket.  All other required keys are inherited from the base input
-plugin from logstash. ::
+Messages may be lost using this input listener, and messages greater
+than 64kb may be truncated.
 
-    input {
-        zeromq_hs {
-           # Setup a ZMQ::REP socket that listens on port 5180
-           type => "metlog"
-           mode => "server"
-           address => "tcp://*:5180"
-        }
+For typical configuration, you need to only care about the host and
+port that the listener will operate on.  A typical configuration block
+will look like this ::
+
+    udp {
+        type => "metlog"
+        mode => "server"
+        format => "json"
+
+        host => "0.0.0.0"
+        port => 5565
     }
+
+The above configuration will let logstash listen on all network
+interfaces on port 5565.  
+
+The type, mode and format should always be set to "metlog", "server"
+and "json" as per the example.
+
 
 In the above example, the `type` is required by logstash.inputs.base.
 It is not used by the zeromq_hs plugin.
@@ -68,14 +81,16 @@ the tag 'output_statsd' to the event. ::
         tagger {
             # all timer messages are tagged with 'output_statsd'
             type => "metlog"
-            pattern => [ "fields/type", "timer"]
+            pattern => [ "type", "timer"]
             add_tag => [ "output_statsd" ]
         }
     }
 
 If a keypath does not exist within an event, it is ignored.
 
-Multiple keypaths can be defined as shown in the following example.
+Multiple keypaths can be defined using a flattened key/value mapping
+as shown in the following example.
+
 If the file type is either a 'timer' or 'counter', the 'output_statsd'
 tag will be applied. ::
 
@@ -83,9 +98,34 @@ tag will be applied. ::
         tagger {
             # all timer and counter messages are tagged with 'output_statsd'
             type => "metlog"
-            pattern => [ "fields/type", "timer", "fields/type", "counter" ]
+            pattern => [ "type", "timer", "type", "counter" ]
             add_tag => [ "output_statsd" ]
         }
+    }
+
+catchall configuration
+----------------------
+
+The catchall filter is used to select messages which have not been
+previously tagged by another filter.  This only works properly because
+the Logstash FilterWorker pool processes messages serially through
+each of the filters defined in logstash.conf
+
+Unfortunately, filters cannot see configuration from other filters so
+you must specify the set of tags which indicate that the message has
+been successfully filtered.
+
+The catchall should specify the superset of all tags
+which logstash should care about.  A logstash event must match *none*
+of the tags in this superset for the catchall filter to add the
+'filter-catchall' tag to the event.
+
+A typical configuration block is shown below ::
+
+    catchall {
+        # anything that isn't tagged already gets tagged here
+        tags => [ "output_text", "output_statsd", "output_sentry", "output_cef" ]
+        add_tag => ['filter-catchall']
     }
 
 
@@ -137,6 +177,20 @@ sends statsd messages to localhost at port 8125.  ::
     }
 
 
+metlog_cef configuration
+------------------------
+
+CEF messages are routed to the syslog daemon running on the local
+machine.  The only configuration you need is the tag that a logstash
+event must have to route to this output.
+
+A typical configuration block is below ::
+
+    metlog_cef {
+        # CEF gets routed over syslog
+        tags => ["output_cef"]
+    }
+
 metlog_file configuration
 -------------------------
 
@@ -158,38 +212,40 @@ your configuration will look like this ::
     }
 
 If you need to address a different part of the logstash event, simply
-use '/' notation. A concrete example of this is writing out CEF
-messages. ::
+use '/' notation. ::
 
     metlog_file {
-        # CEF messages just go out to a dedicated plain text logger
-        tags => ["output_cef"]
+        tags => ["output_some_random_text"]
         format => "preformatted_field"
         formatted_field => "fields/logtext"
-        path => "/var/log/metlog/metlog_cef.log"
+        path => "/var/log/metlog/metlog_some_random_text.log"
     }
 
-In some cases, you will want to write out the raw metlog JSON event.
-Hadoop is one such case
+metlog_sentry_dsn
+-----------------
 
-# TODO: List all required and optional parameters for :
-# Inputs: zeromq_hs
-# Filter: tagger, catchall
-# Outputs: metlog_sentry, metlog_file, metlog_statsd
+The metlog_sentry_dsn output plugin relies on metlog using
+metlog-raven >= 0.3.  The metlog client will embed the sentry DSN which
+we want to use for final routing.  The only configuration you need
+is the tag that a logstash event must have to route to this output.
 
-Log rotation is handled using logrotate to rename the file and then
-sending a SIGHUP to the logstash process. A sample logrotate script is
-follows ::
+A typical configuration block is below ::
 
-    "/var/log/metlog/metlog_cef.log" {
-        rotate 20
-        size=64M
-        create
-        ifempty
-        daily
-        postrotate
-            # Send a SIGHUP to to your logstash process here
-            # using whatever process management tool you happen to be
-            # using
-        endscript
+    metlog_sentry_dsn {
+        # This is a new Sentry output plugin which requires the
+        # metlog-raven client to embed the DSN in the metlog message
+        tags => [ "output_sentry" ]
     }
+
+
+A complete configuration
+------------------------
+
+Tying all these parts together is sometimes not entirely obvious, so
+we've assembled a working vagrant image for you.  You can go use our
+`vagrant backend
+<https://github.com/mozilla-services/vagrant-metlog-backend/>`_ to get
+a working enviroment.
+
+The `logstash configuration <https://github.com/mozilla-services/vagrant-metlog-backend/blob/master/files/logstash.conf>`_ for that instance can always be used as a
+reference point for a working configuration.
