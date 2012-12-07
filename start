@@ -1,0 +1,10 @@
+#!/bin/bash
+# This will start logstash from the logstash-metlog dir
+# It's recommended that this be run with enough privleges to write
+# to the directories specified in the conf/logstash.conf file.
+#
+
+LOGSTASH=logstash-1.1.0-monolithic_20120208.jar
+#LOGSTASH=logstash-1.1.5-monolithic.jar
+#
+java -jar lib/$LOGSTASH agent -f conf/logstash.conf --pluginpath src
