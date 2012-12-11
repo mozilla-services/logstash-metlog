@@ -2,8 +2,8 @@
 from ConfigParser import SafeConfigParser
 from metlog.config import client_from_dict_config
 import argparse
-import datetime
 import os
+import os.path
 import shutil
 import subprocess
 import sys
@@ -31,21 +31,22 @@ class HDFSUploader(object):
         self._ssh_keypath = ssh_keys
 
         print "SSH Keys are in : %s" % self._ssh_keypath
-        self.SDATE = self.compute_sdate()
 
         self.HADOOP_USER = cfg.get('metlog_metrics_hdfs', 'HADOOP_USER')
         self.HADOOP_HOST = cfg.get('metlog_metrics_hdfs', 'HADOOP_HOST')
         self.SRC_LOGFILE = cfg.get('metlog_metrics_hdfs', 'SRC_LOGFILE')
 
-        self.DST_FNAME = "%s.%s" % (cfg.get('metlog_metrics_hdfs',
-                                            'DST_FNAME'), self.SDATE)
+        self.DST_FNAME = os.path.join(os.path.split(
+                                      cfg.get('metlog_metrics_hdfs',
+                                              'DST_FNAME'))[0],
+                                      os.path.split(time.strftime(
+                                                    self.SRC_LOGFILE))[-1])
 
         # Make a copy of the log file in case it gets rotated out from
         # under us
         self.TMP_DIR = cfg.get('metlog_metrics_hdfs', 'TMP_DIR')
         self.LOCAL_FNAME = os.path.join(self.TMP_DIR,
-                                        "metrics_hdfs.log.%s")
-        self.LOCAL_FNAME = self.LOCAL_FNAME % self.SDATE
+                                        os.path.split(self.DST_FNAME)[-1])
 
         self.ERR_RM_HDFS = 'Failed to remove [%s] from %s'
         self.ERR_RM_HDFS = self.ERR_RM_HDFS % (self.DST_FNAME,
@@ -59,9 +60,6 @@ class HDFSUploader(object):
         self.ERR_DFS_WRITE = "DFS Write failure for [%s]" % self.DST_FNAME
 
         self.LOGGER = client_from_dict_config(dict(cfg.items('metlog')))
-
-    def compute_sdate(self):
-        return datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S')
 
     def remove_file_from_hadoop(self):
         priv_key = os.path.join(self._ssh_keypath,
@@ -117,7 +115,7 @@ class HDFSUploader(object):
     def call_subprocess(self, *args, **kwargs):
         return subprocess.call(*args, **kwargs)
 
-    def dfs_put(self):
+    def get_user_home(self):
         # Just tell hadoop to import the file
         priv_key = os.path.join(self._ssh_keypath,
                                 "id_private_%s" % self.HADOOP_USER)
@@ -126,11 +124,29 @@ class HDFSUploader(object):
                "-i",
                priv_key,
                ssh_target,
+               "pwd"]
+        self.LOGGER.info(' '.join(cmd))
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        results = proc.communicate()
+        user_home = results[0].strip()
+        return user_home
+
+    def dfs_put(self):
+        # Just tell hadoop to import the file
+        priv_key = os.path.join(self._ssh_keypath,
+                                "id_private_%s" % self.HADOOP_USER)
+        ssh_target = "%s@%s" % (self.HADOOP_USER, self.HADOOP_HOST)
+
+        user_home = self.get_user_home()
+        cmd = ["/usr/bin/ssh",
+               "-i",
+               priv_key,
+               ssh_target,
                "hadoop",
                "dfs",
                "-put",
                self.DST_FNAME,
-               "/user/%s/%s" % (self.HADOOP_USER, self.DST_FNAME)]
+               os.path.join(user_home, self.DST_FNAME)]
 
         self.LOGGER.info(' '.join(cmd))
         dfs_result = self.call_subprocess(cmd)
