@@ -1,7 +1,7 @@
 %define _logstash_dir /opt/logstash
 
 Name:          logstash-metlog
-Version:       0.8.8
+Version:       0.8.9
 Release:       1svc
 Summary:       Logstash plugins for the MetLog framework
 Packager:      Mozilla Services Operations <services-ops@mozilla.com>
@@ -11,7 +11,7 @@ URL:           https://github.com/mozilla-services/logstash-metlog
 Source0:       %{name}.tar.gz
 BuildRoot:     %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 AutoReqProv:   no
-Requires:      logstash = 1.1.5-1svc, python26-argparse
+Requires:      logstash = 1.1.5-2svc, python26-argparse
 
 %description
 Logstash plugins to enable messages coming from the MetLog framework
@@ -38,6 +38,9 @@ rm -rf %{buildroot}
 %attr(755,root,root) %{_logstash_dir}/bin/upload_log.py
 
 %changelog
+* Thu Dec 27 2012 Wesley Dawson <whd@mozilla.com>
+- Update specfile for 0.8.9
+
 * Thu Nov 22 2012 Victor Ng <vng@mozilla.com>
 - release 0.8.8
 - use fully qualified paths for scp and ssh
