@@ -1,7 +1,7 @@
 %define _logstash_dir /opt/logstash
 
 Name:          logstash-metlog
-Version:       0.8.9
+Version:       0.8.10
 Release:       1svc
 Summary:       Logstash plugins for the MetLog framework
 Packager:      Mozilla Services Operations <services-ops@mozilla.com>
@@ -11,7 +11,7 @@ URL:           https://github.com/mozilla-services/logstash-metlog
 Source0:       %{name}.tar.gz
 BuildRoot:     %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 AutoReqProv:   no
-Requires:      logstash = 1.1.5-2svc, python26-argparse
+Requires:      logstash = 1.1.5-2svc
 
 %description
 Logstash plugins to enable messages coming from the MetLog framework
@@ -25,9 +25,7 @@ to be properly parsed, filtered, and shipped.
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}%{_logstash_dir}/plugins
-mkdir -p %{buildroot}%{_logstash_dir}/bin
 cp -rp src/logstash %{buildroot}%{_logstash_dir}/plugins
-cp -p logrotate/bin/upload_log.py %{buildroot}%{_logstash_dir}/bin
 
 %clean
 rm -rf %{buildroot}
@@ -35,9 +33,14 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %{_logstash_dir}/plugins
-%attr(755,root,root) %{_logstash_dir}/bin/upload_log.py
 
 %changelog
+* Tue Jan 29 2013 Victor Ng <vng@mozilla.com>
+- Removed the logrotate scripts and pushed them into
+  github.com/mozilla-services/server-syncstorage branch=rfk/management-scripts
+- dropped argparse dependency as upload_log.py is not included with
+  this rpm anymore
+
 * Thu Dec 27 2012 Wesley Dawson <whd@mozilla.com>
 - Update specfile for 0.8.9
 
