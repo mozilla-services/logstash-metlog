@@ -45,7 +45,7 @@ class LogStash::Inputs::ZeroMQHandshake < LogStash::Inputs::Base
       loop do
         txt = ''
         @socket.recv_string(txt)
-        @socket.send_string('')
+        @socket.send_string(txt)
       end
     rescue => e
       @logger.debug("ZMQ Error", :subscriber => @socket,
